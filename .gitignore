@@ -1,0 +1,9 @@
+bin/
+lib/
+__pycache__/
+*.zip
+pyvenv.cfg
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
