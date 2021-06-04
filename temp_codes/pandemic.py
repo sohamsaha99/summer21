@@ -19,9 +19,12 @@ import csv
 from collections import deque,defaultdict
 from time import time
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import networkx as nx
 
 # ------------- TIME-RELATED PARAMETERS -------------------------
-
+seed(25) # FOR VERYSMALL CSV
+seed_rn(26) # FOR VERYSMALL CSV
 day=24*60*60 # one day in seconds
 
 timestep_in_data=300.0 # time steps in data are 300 sec each
@@ -80,7 +83,8 @@ infectiousness_damping=0.51 # for Ias,Ips and their pre-symptomatic period (Ip)
 
 #inputfile='including_student_0_positive_rssi_removed.csv'
 # inputfile='bt_symmetric.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
-inputfile='bt_valid_only.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
+# inputfile='bt_valid_only.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
+inputfile='bt_small.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
 
 # path='/m/cs/scratch/networks/jsaramak/spreading' # REPLACE WITH YOUR OWN PATH TO DATA
 path='./Datasets/'
@@ -507,7 +511,7 @@ if True:
     days_passed = 0
     first_times = {}
     initial_period_in_days=7
-    p_transmission = 0.2
+    p_transmission = 0.05
     student_id_list=list(student_ids) # list of ids in data; not all ids appear at all
     N_students=len(student_id_list)
     max_time=max(contactdict.keys())
@@ -538,6 +542,8 @@ if True:
     # initialize event queue
     eventq=defaultdict(list) # dictionary dict[timestamp]={(student_id,state),...] of state changes
     output_for_plot = defaultdict(dict)
+    G = nx.DiGraph()
+    G.add_nodes_from(student_id_list)
     # find first event where patient zero participates; start from there.
     curr_time=first_times[patient_zero_index] # pick first event of patient zero as starting time
     curr_time=curr_time+int(timestep_in_data*round((day*random()*initial_period_in_days)/timestep_in_data)) # add 0-7 days at random
@@ -602,12 +608,18 @@ if True:
                             exposed+=1
                             total_infected+=1
                             update_plot_output(output_for_plot, curr_time, N_students, exposed, infectious, total_infected)
+                            G.add_edge(source, target, type=str('%.2f'%(curr_time/day)))
                             print("Day "+str('%.2f'%(curr_time/day))+" P"+str(target)+" was exposed to infected P"+str(source)+". E="+str(exposed)+", total_infected="+str(total_infected))
         if (exposed+infectious)==0: # simulation done when no-one is infectious or exposed
             done=True
         curr_time+=int(timestep_in_data)
         # -------------- done looping over contacts at time curr_time
     #    print time()-t1
+    status_dict = {}
+    colors_of_node = {"S": "green", "E": "yellow", "I": "blue", "R": "red"}
+    for sid in student_id_list:
+        status_dict[sid] = colors_of_node[studentlist[sid].state]
+    nx.set_node_attributes(G, status_dict, "group")
     if quarantines>0:
         fq=float(false_quarantines)/quarantines
     else:
