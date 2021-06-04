@@ -21,10 +21,23 @@ from time import time
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import networkx as nx
+import json
+
+# ---- files etc
+
+#inputfile='including_student_0_positive_rssi_removed.csv'
+# inputfile='bt_symmetric.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
+# inputfile='bt_valid_only.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
+inputfile='bt_small.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
+
+# path='/m/cs/scratch/networks/jsaramak/spreading' # REPLACE WITH YOUR OWN PATH TO DATA
+path='./Datasets/'
 
 # ------------- TIME-RELATED PARAMETERS -------------------------
-seed(25) # FOR VERYSMALL CSV
-seed_rn(26) # FOR VERYSMALL CSV
+seed(25) # FOR SMALL CSV
+seed_rn(26) # FOR SMALL CSV
+# seed(20) # FOR VALID_ONLY
+# seed_rn(21) # FOR VALID_ONLY
 day=24*60*60 # one day in seconds
 
 timestep_in_data=300.0 # time steps in data are 300 sec each
@@ -79,15 +92,6 @@ infectious_period=7.5*day-incubation_period
 
 infectiousness_damping=0.51 # for Ias,Ips and their pre-symptomatic period (Ip)
 
-# ---- files etc
-
-#inputfile='including_student_0_positive_rssi_removed.csv'
-# inputfile='bt_symmetric.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
-# inputfile='bt_valid_only.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
-inputfile='bt_small.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
-
-# path='/m/cs/scratch/networks/jsaramak/spreading' # REPLACE WITH YOUR OWN PATH TO DATA
-path='./Datasets/'
 
 # ---------- NODE CLASS DEFINITION ----------------
 
@@ -511,7 +515,8 @@ if True:
     days_passed = 0
     first_times = {}
     initial_period_in_days=7
-    p_transmission = 0.05
+    p_transmission = 0.05 # FOR SMALL
+    # p_transmission = 0.02 # FOR VALID_ONLY
     student_id_list=list(student_ids) # list of ids in data; not all ids appear at all
     N_students=len(student_id_list)
     max_time=max(contactdict.keys())
@@ -620,6 +625,16 @@ if True:
     for sid in student_id_list:
         status_dict[sid] = colors_of_node[studentlist[sid].state]
     nx.set_node_attributes(G, status_dict, "group")
+    nodes_list = []
+    for node in G.nodes():
+        nodes_list.append({"name": str(node), "id": node, "group": G.nodes[node]["group"]})
+    edges_list = []
+    for source, target, time in G.edges(data=True):
+        edges_list.append({"source": source, "target": target, "type": time['type']})
+    graph_dict = {"nodes": nodes_list, "links": edges_list}
+    with open('graph_data.json', 'w', encoding='utf-8') as f:
+        json.dump(graph_dict, f, ensure_ascii=False, indent=4)
+    plot_pandemic(output_for_plot).show()
     if quarantines>0:
         fq=float(false_quarantines)/quarantines
     else:

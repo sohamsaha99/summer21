@@ -49,3 +49,20 @@ node_trace = go.Scatter(
             titleside='right'
         ),
         line_width=2))
+
+
+nodes_list = []
+for node in G.nodes():
+    nodes_list.append({"name": str(node), "id": node, "group": G.nodes[node]["group"]})
+
+
+edges_list = []
+for source, target, time in G.edges(data=True):
+    edges_list.append({"source": source, "target": target, "type": time['type']})
+
+graph_dict = {"nodes": nodes_list, "links": edges_list}
+
+import json
+with open('graph_data.json', 'w', encoding='utf-8') as f:
+    json.dump(graph_dict, f, ensure_ascii=False, indent=4)
+
