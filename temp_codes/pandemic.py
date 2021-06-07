@@ -27,17 +27,17 @@ import json
 
 #inputfile='including_student_0_positive_rssi_removed.csv'
 # inputfile='bt_symmetric.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
-# inputfile='bt_valid_only.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
-inputfile='bt_small.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
+inputfile='bt_150.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
+# inputfile='bt_small.csv' # USE ORIGINAL FILE FROM THE SCIENTIFIC DATA PAPER https://www.nature.com/articles/s41597-019-0325-x
 
 # path='/m/cs/scratch/networks/jsaramak/spreading' # REPLACE WITH YOUR OWN PATH TO DATA
 path='./Datasets/'
 
 # ------------- TIME-RELATED PARAMETERS -------------------------
-seed(25) # FOR SMALL CSV
-seed_rn(26) # FOR SMALL CSV
-# seed(20) # FOR VALID_ONLY
-# seed_rn(21) # FOR VALID_ONLY
+# seed(25) # FOR SMALL CSV
+# seed_rn(26) # FOR SMALL CSV
+seed(20) # FOR VALID_ONLY
+seed_rn(21) # FOR VALID_ONLY
 day=24*60*60 # one day in seconds
 
 timestep_in_data=300.0 # time steps in data are 300 sec each
@@ -46,7 +46,7 @@ timestep_in_data=300.0 # time steps in data are 300 sec each
 
 p_app_d=0.00      # probability of using a tracking smartphone app
 p_tested_d=0.5    # probability of getting tested if with mild symptoms (asymptomatic never get tested; those w severe symptoms always get)
-p_traced_d=0.75   # probability of a contact being recalled correctly when contact tracing, set to 0 if no contact tracing
+p_traced_d=0.5   # probability of a contact being recalled correctly when contact tracing, set to 0 if no contact tracing
 p_mask_d=0.0      # probability of wearing a mask (NOT USED IN THE PAPER)
 
 test_delay_d=0.5*day # delay from onset of symptoms to getting test results
@@ -92,7 +92,8 @@ infectious_period=7.5*day-incubation_period
 
 infectiousness_damping=0.51 # for Ias,Ips and their pre-symptomatic period (Ip)
 
-
+colors_of_node = {"S": "green", "E": "yellow", "I": "blue", "R": "red"}
+my_quarantine_list = []
 # ---------- NODE CLASS DEFINITION ----------------
 
 # usage: upon initialization, set to state S
@@ -205,6 +206,8 @@ class Node:
                 quarantine_time=int(timestep_in_data*round((curr_time+normal(loc=params['trace_delay_app'],scale=params['trace_delay_app']/10.0))/timestep_in_data))
             # if either worked, quarantine
             if put_in_quarantine:
+                G_tracing.add_edge(self.id, contact, type=str('%.2f'%(quarantine_time/day)))
+                nx.set_node_attributes(G_tracing, {self.id: {"group": colors_of_node[self.state[0]]}, contact: {"group": colors_of_node[studentlist[contact].state[0]]}})
                 if quarantine_time in eventq:
                     if not((contact,'BOQ_t') in eventq[quarantine_time]): # to avoid adding multiple beginnings (if already added from some other contact list)
                         eventq[quarantine_time].append((contact,'BOQ_t')) # place contact in quarantine
@@ -215,6 +218,7 @@ class Node:
         '''Sets self.in_quarantine=True and adds an EOQ event in event_q after quarantine_length'''
         eoq_time=int(timestep_in_data*round((curr_time+params['quarantine_length'])/timestep_in_data)) # time when quarantine ends
         eventq[eoq_time].append((self.id,'EOQ'))
+        my_quarantine_list.append(self.id)
         self.in_quarantine=True
 
 # --------------- AUX FUNCTIONS ----------------
@@ -548,6 +552,7 @@ if True:
     eventq=defaultdict(list) # dictionary dict[timestamp]={(student_id,state),...] of state changes
     output_for_plot = defaultdict(dict)
     G = nx.DiGraph()
+    G_tracing = nx.DiGraph()
     G.add_nodes_from(student_id_list)
     # find first event where patient zero participates; start from there.
     curr_time=first_times[patient_zero_index] # pick first event of patient zero as starting time
@@ -621,9 +626,8 @@ if True:
         # -------------- done looping over contacts at time curr_time
     #    print time()-t1
     status_dict = {}
-    colors_of_node = {"S": "green", "E": "yellow", "I": "blue", "R": "red"}
     for sid in student_id_list:
-        status_dict[sid] = colors_of_node[studentlist[sid].state]
+        status_dict[sid] = colors_of_node[studentlist[sid].state[0]]
     nx.set_node_attributes(G, status_dict, "group")
     nodes_list = []
     for node in G.nodes():
@@ -633,6 +637,16 @@ if True:
         edges_list.append({"source": source, "target": target, "type": time['type']})
     graph_dict = {"nodes": nodes_list, "links": edges_list}
     with open('graph_data.json', 'w', encoding='utf-8') as f:
+        json.dump(graph_dict, f, ensure_ascii=False, indent=4)
+    # FOR TRACING NETWORK
+    nodes_list = []
+    for node in G_tracing.nodes():
+        nodes_list.append({"name": str(node), "id": node, "group": G_tracing.nodes[node]["group"]})
+    edges_list = []
+    for source, target, time in G_tracing.edges(data=True):
+        edges_list.append({"source": source, "target": target, "type": time['type']})
+    graph_dict = {"nodes": nodes_list, "links": edges_list}
+    with open('graph_data_tracing.json', 'w', encoding='utf-8') as f:
         json.dump(graph_dict, f, ensure_ascii=False, indent=4)
     plot_pandemic(output_for_plot).show()
     if quarantines>0:
