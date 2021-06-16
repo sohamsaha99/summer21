@@ -8,3 +8,10 @@ pyvenv.cfg
 .RData
 .Ruserdata
 Datasets/
+temp_codes/a
+temp_codes/a.out
+temp_codes/dailydata*
+temp_codes/graphdata*
+temp_codes/graph_data*
+temp_codes/tests*
+temp_codes/trace*

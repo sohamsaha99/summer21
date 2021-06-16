@@ -218,7 +218,7 @@ class Node:
         '''Sets self.in_quarantine=True and adds an EOQ event in event_q after quarantine_length'''
         eoq_time=int(timestep_in_data*round((curr_time+params['quarantine_length'])/timestep_in_data)) # time when quarantine ends
         eventq[eoq_time].append((self.id,'EOQ'))
-        my_quarantine_list.append(self.id)
+        # my_quarantine_list.append(self.id)
         self.in_quarantine=True
 
 # --------------- AUX FUNCTIONS ----------------
@@ -519,7 +519,7 @@ if True:
     days_passed = 0
     first_times = {}
     initial_period_in_days=7
-    p_transmission = 0.05 # FOR SMALL
+    p_transmission = 0.045 # FOR SMALL
     # p_transmission = 0.02 # FOR VALID_ONLY
     student_id_list=list(student_ids) # list of ids in data; not all ids appear at all
     N_students=len(student_id_list)
@@ -648,7 +648,7 @@ if True:
     graph_dict = {"nodes": nodes_list, "links": edges_list}
     with open('graph_data_tracing.json', 'w', encoding='utf-8') as f:
         json.dump(graph_dict, f, ensure_ascii=False, indent=4)
-    plot_pandemic(output_for_plot).show()
+    # plot_pandemic(output_for_plot).show()
     if quarantines>0:
         fq=float(false_quarantines)/quarantines
     else:
