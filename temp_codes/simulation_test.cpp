@@ -8,41 +8,41 @@ using namespace std;
 const int day=24*60*60;
 const int timestep_in_data=300;
 float p_app_d=0.0;
-float p_tested=0.50;
-float p_test_high_contact=0.80;
-float p_test_low_contact=0.50;
-float p_traced=0.50;
+float p_tested=0.25;
+float p_test_high_contact=1.0;
+float p_test_low_contact=0.0;
+float p_traced=1.0;
 float p_mask=0.00;
-float test_delay_d=1.0*day;
-float trace_delay_manual_d=1.0*day;
+float test_delay_d=0.25*day;
+float trace_delay_manual_d=0.25*day;
 float trace_delay_app_d=0.0;
-int manual_tracing_threshold=2;
-int app_tracing_threshold=2;
+int manual_tracing_threshold=0;
+int app_tracing_threshold=0;
 float mask_reduction_out_d=0.6;
 float mask_reduction_in_d=0.9;
-int tracelength_d = 2*day;
+int tracelength_d = 4*day;
 int quarantine_length=14*day;
-float incubation_period=5.2*day;
-float prodromal_period=1.5*day;
+float incubation_period=5.0*day;
+float prodromal_period=2.0*day;
 float latency_period=incubation_period - prodromal_period;
-float p_asymptomatic=0.70;
-float p_paucisymptomatic=0.25*(1 - p_asymptomatic);
-float p_mildsymptomatic=0.70*(1 - p_asymptomatic);
-float p_severesymptomatic=0.05*(1 - p_asymptomatic);
-float infectious_period=7.5*day - incubation_period;
+float p_asymptomatic=0.00;
+float p_paucisymptomatic=0.0*(1 - p_asymptomatic);
+float p_mildsymptomatic=0.0*(1 - p_asymptomatic);
+float p_severesymptomatic=1.0*(1 - p_asymptomatic);
+float infectious_period=7.0*day - incubation_period;
 
-float p_transmission=0.0245; ////////////////////////////////////////////////////////////////////////////////////////////
-float low_risk_adjustment=0.80;////////////////////////////////////////////////////////////////////////////////////////
+float p_transmission=1.0; ////////////////////////////////////////////////////////////////////////////////////////////
+float low_risk_adjustment=1.0;////////////////////////////////////////////////////////////////////////////////////////
 
 random_device rd;
 mt19937 gen(rd());
 // default_random_engine gen;
-normal_distribution<float> rnorm_latency_period(latency_period, latency_period/7.0);
-normal_distribution<float> rnorm_prodromal_period(prodromal_period, prodromal_period/7.0);
-normal_distribution<float> rnorm_test_delay(test_delay_d, test_delay_d/7.0);
-normal_distribution<float> rnorm_infectious_period(infectious_period, infectious_period/7.0);
-normal_distribution<float> rnorm_trace_delay_manual(trace_delay_manual_d, trace_delay_manual_d/7.0);
-normal_distribution<float> rnorm_trace_delay_app(trace_delay_app_d, trace_delay_app_d/7.0);
+normal_distribution<float> rnorm_latency_period(latency_period, 0);
+normal_distribution<float> rnorm_prodromal_period(prodromal_period, 0);
+normal_distribution<float> rnorm_test_delay(test_delay_d, 0);
+normal_distribution<float> rnorm_infectious_period(infectious_period, 0);
+normal_distribution<float> rnorm_trace_delay_manual(trace_delay_manual_d, 0);
+normal_distribution<float> rnorm_trace_delay_app(trace_delay_app_d, 0);
 discrete_distribution<int> sample_I_class={p_asymptomatic, p_paucisymptomatic, p_mildsymptomatic, p_severesymptomatic};
 // discrete_distribution<int> sample_I_class={1, 2, 3, 4};
 char Iclass[] = {'J', 'K', 'L', 'M'};
@@ -441,6 +441,7 @@ public:
                 if(get<2>(time_sid_strength))
                 {
                     count_of_high_risk_contacts[get<1>(time_sid_strength)] -= 1;
+                    cout<<"Deleted contact with P"<<get<1>(time_sid_strength)<<" from memory of P"<<id<<" at time "<<currtime<<"\n";
                 }
                 contacts.pop_front();
             }
@@ -481,9 +482,13 @@ public:
         awaiting_result=false;
         testedPositive=true;
         ongoing_tests.erase(id);
-        positive_patients[id]=true;
+        positive_patients[id] = true;
         float temp=0.0;
+        cout<<"Flushing old contacts of P"<<id<<"\n";
+        printnode(currtime);
+        cout<<param_tracelength<<"Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\n";
         flush_contacts(currtime, param_tracelength);
+        printnode(currtime);
         for(auto& kv:count_of_contacts)
         {
             bool put_in_quarantine=false;
@@ -578,7 +583,7 @@ public:
             ongoing_tests[id] = testId;
         }
         awaiting_result=true;
-        if(state=='E' || state=='I' || state=='J' || state=='K' || state=='L' || state=='M') // WARNING: EXPOSED ARE TESTED POSITIVE?
+        if(state=='I' || state=='J' || state=='K' || state=='L' || state=='M')
         {
             // IN THESE CASES, THE RESULT WILL BE POSITIVE
             insertEvent(eventq, time_to_result, {id, 'T'});
@@ -760,7 +765,7 @@ void printTotalCount(const vector<tuple<int, int, int, int>> &totalCounts)
 int main(int argc, char const *argv[])
 {
     srand(time(0));
-    bool printTimeline=false;
+    bool printTimeline=true;;
     // float p_mask=0.0, p_app=0.0;
     // string filename="contacts_50000_28.csv";
     vector<vector<pair<int, char>>> eventq;
@@ -772,15 +777,15 @@ int main(int argc, char const *argv[])
     student_ids.clear();
     contactdict.clear();
     std::chrono::steady_clock::time_point begin_reading = std::chrono::steady_clock::now();
-    string filename="contacts_50000_28_Day";
+    string filename="../Datasets/bt_dummy_2.csv";
     // int rows=parseCSVFast("contacts_50000_28Day", contactdict, student_ids);
-    for(int i=1; i<=28; i++)
-    {
-        string filenametemp=filename+to_string(i)+".csv";
-        cout<<"File "<<i<<": "<<parseCSVFast(filenametemp, contactdict, student_ids)<<"\n";
-    }
-    cout<<contactdict.size()<<"\n"<<student_ids.size()<<"\n"<<"\n";
-    // parseCSVFast(filename, contactdict, student_ids);
+    // for(int i=1; i<=28; i++)
+    // {
+    //     string filenametemp=filename+to_string(i)+".csv";
+    //     cout<<"File "<<i<<": "<<parseCSVFast(filenametemp, contactdict, student_ids)<<"\n";
+    // }
+    // cout<<contactdict.size()<<"\n"<<student_ids.size()<<"\n"<<"\n";
+    parseCSVFast(filename, contactdict, student_ids);
     // parseCSV(filename, contactdict, student_ids);
     std::chrono::steady_clock::time_point end_reading = std::chrono::steady_clock::now();
     std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end_reading - begin_reading).count() << "[µs]" << std::endl;
@@ -793,7 +798,7 @@ int main(int argc, char const *argv[])
     nodeClass::initiatePositiveRecords(N_students);
     int max_time=contactdict.size()-1;
     int patient_zero_index=student_id_list[rand()%N_students];
-    patient_zero_index=student_id_list[1];
+    patient_zero_index=1;
     int initial_period_in_days=7*day/timestep_in_data;
     float temp=0.0;
     vector<nodeClass> studentlist;
@@ -838,7 +843,7 @@ int main(int argc, char const *argv[])
     //     cout<<studentlist[i].id<<" ";
     // }
     // cout<<"\n";
-    curr_time=first_time+rand()%initial_period_in_days;
+    curr_time=10*288+1+0;
     vector<tuple<int, int, bool>> BLANK={};
     while(contactdict.size()<=curr_time)
     {
@@ -848,24 +853,34 @@ int main(int argc, char const *argv[])
     cout<<"Max time: "<<max_time<<" \n";
     cout<<"Cur time: "<<curr_time<<" \n";
     studentlist[patient_zero_index].exposure(eventq, curr_time);
-    studentlist[student_id_list[2]].exposure(eventq, curr_time);
-    studentlist[student_id_list[3]].exposure(eventq, curr_time);
-    studentlist[student_id_list[4]].exposure(eventq, curr_time);
-    studentlist[student_id_list[5]].exposure(eventq, curr_time);
-    studentlist[student_id_list[6]].exposure(eventq, curr_time);
-    int exposed=6, infectious=0, total_infected=6, quarantines=0, false_quaranties=0, periodic_boundary_modifier=0;
+    studentlist[2].exposure(eventq, 9*288+181);
+    studentlist[3].exposure(eventq, 9*288+181);
+    // studentlist[student_id_list[2]].exposure(eventq, curr_time);
+    // studentlist[student_id_list[3]].exposure(eventq, curr_time);
+    // studentlist[student_id_list[4]].exposure(eventq, curr_time);
+    // studentlist[student_id_list[5]].exposure(eventq, curr_time);
+    // studentlist[student_id_list[6]].exposure(eventq, curr_time);
+    int exposed=3, infectious=0, total_infected=3, quarantines=0, false_quaranties=0, periodic_boundary_modifier=0;
     vector<tuple<int, int, int, int>> totalCounts{make_tuple(N_students, 0, 0, 0)};
     vector<tuple<int, int, char, int, char>> transmissionChain;
     bool done=false;
     if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), patient_zero_index, exposed, total_infected);}
     pair<int, char> event;
+    showContactEvents(contactdict);
     while(!done)
     {
         // cout<<curr_time<<" OK3\n";
         // showEvents(eventq);
         if(!eventq[curr_time].empty())
         {
+            cout<<"Processiong events of time "<<curr_time<<"\n";
             int l=eventq[curr_time].size();
+            // cout<<l<<" C2\n";
+            // if(l!=0)
+            // {
+            //     showEvents(eventq);
+            // }
+            // cout<<"Hi at "<<curr_time<<" time, q size:"<<eventq.size()<<"\n";
             for(int i=0; i<l; i++)
             {
                 event=eventq[curr_time][i];
@@ -875,10 +890,20 @@ int main(int argc, char const *argv[])
                 if(eventcode=='C' && !studentlist[sid].in_quarantine)
                 {
                     quarantines+=1;
-                    if(printTimeline){printf("Day %6.2f : P%d in quarantine. Q=%d\n", curr_time*timestep_in_data/(float)(day), sid, quarantines);}
+                    if(printTimeline){printf("Day %6.2f : P%d in quarantine. Q=%d. State=%c\n", curr_time*timestep_in_data/(float)(day), sid, quarantines, studentlist[sid].state);}
                     if(studentlist[sid].state=='S' || studentlist[sid].state=='R')
                     {
                         false_quaranties+=1;
+                        if(printTimeline){printf("NOTE: False quarantine. FQ=%d\n", false_quaranties);}
+                    }
+                }
+                else if(eventcode=='B' && !studentlist[sid].in_quarantine)
+                {
+                    // quarantines+=1;
+                    if(printTimeline){printf("Day %6.2f : P%d in quarantine due to symptom. Q=%d\n", curr_time*timestep_in_data/(float)(day), sid, quarantines);}
+                    if(studentlist[sid].state=='S' || studentlist[sid].state=='R')
+                    {
+                        // false_quaranties+=1;
                         if(printTimeline){printf("NOTE: False quarantine. FQ=%d\n", false_quaranties);}
                     }
                 }
@@ -898,10 +923,14 @@ int main(int argc, char const *argv[])
                 {
                     if(printTimeline){printf("Day %6.2f : P%d in state %c. E=%d. I=%d\n", curr_time*timestep_in_data/(float)(day), sid, eventcode, exposed, infectious);}
                 }
-                // else if(eventcode=='G')
-                // {
-                //     if(printTimeline){printf("Day %6.2f : P%d is tested due to tracing.\n", curr_time*timestep_in_data/(float)(day), sid);}
-                // }
+                else if(eventcode=='G')
+                {
+                    if(printTimeline){printf("Day %6.2f : P%d is tested due to tracing.\n", curr_time*timestep_in_data/(float)(day), sid);}
+                }
+                else
+                {
+                    if(printTimeline){printf("Don't know what to print. Day %6.2f : Eventcode: %c. P%d\n", curr_time*timestep_in_data/(float)(day), eventcode, sid);}
+                }
                 studentlist[sid].statechange(eventq, eventcode, curr_time, students_with_apps);
             }
             eventq[curr_time].clear();
@@ -909,7 +938,7 @@ int main(int argc, char const *argv[])
         if(curr_time-periodic_boundary_modifier>max_time)
         {
             periodic_boundary_modifier+=max_time+1;
-            if(printTimeline){printf("Day %6.2f : periodic_boundary_modifier=%d\n", curr_time*timestep_in_data/(float)(day), periodic_boundary_modifier);}
+            // if(printTimeline){printf("Day %6.2f : periodic_boundary_modifier=%d\n", curr_time*timestep_in_data/(float)(day), periodic_boundary_modifier);}
         }
         // cout<<(curr_time-periodic_boundary_modifier)<<"A\n";
         if(!contactdict[curr_time-periodic_boundary_modifier].empty())
@@ -980,8 +1009,42 @@ int main(int argc, char const *argv[])
     // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << std::endl;
     // printTotalCount(totalCounts);
     dumpCSVtotalCounts("dailydata.txt", totalCounts);
+    cout<<"Dumped dailydata.txt\n";
     dumpJSONtransmissionChain("graphdata.json", transmissionChain);
+    cout<<"Dumped graphdata.json\n";
     nodeClass::dumpOfficialTestsData("tests.txt");
+    cout<<"Dumped tests.txt\n";
     nodeClass::dumpOfficialTracingData("trace.txt");
+    cout<<"Dumped trace.txt\n";
+    cout<<studentlist[1].state<<"\n";
+    // insertEvent(eventq, 5, {29, 'J'});
+    // showEvents(eventq);
+    // nodeClass P1(123, p_mask, p_app), P2(29, p_mask, p_app), P3(0, p_app, p_mask);
+    // P1.printnode();
+    // P2.printnode(2);
+    // P3.printnode(-5);
+    // // P2.statechange(eventq, 'J', 5);
+    // // P3.statechange(eventq, 'B', 6);
+    // // P1.statechange(eventq, 'T', 0);
+    // P1.exposure(eventq, 5);
+    // P2.exposure(eventq, 2);
+    // P1.printnode();
+    // P2.printnode(2);
+    // P3.printnode(-5);
+    // P2.add_contact(99, 285);
+    // P2.add_contact(99, 286);
+    // P2.add_contact(100, 287);
+    // P2.add_contact(101, 288);
+    // P2.add_contact(102, 289);
+    // P2.add_contact(103, 290);
+    // P2.add_contact(103, 290);
+    // P2.add_contact(103, 291);
+    // P2.printnode();
+    // P2.flush_contacts(576+288);
+    // P2.printnode();
+    // P2.trace_contacts(eventq, 576+288, students_with_apps);
+    // showEvents(eventq);
+    // cout<<float(rnorm_infectious_period(gen))<<" "<<rnorm_latency_period(gen)<<" "<<rnorm_prodromal_period(gen)<<"\n";
+    // cout<<rnorm_infectious_period(gen)<<" "<<rnorm_latency_period(gen)<<" "<<rnorm_prodromal_period(gen)<<"\n";
     return 0;
 }

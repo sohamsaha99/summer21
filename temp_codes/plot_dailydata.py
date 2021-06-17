@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 import csv
 
-with open('dailydata.txt', newline='') as f:
+with open('dailydata_20000_new.txt', newline='') as f:
     reader = csv.reader(f)
     data = list(reader)
     # print(reader)
