@@ -230,6 +230,7 @@ void dumpJSONtransmissionChain(string filename, const vector<tuple<int, int, cha
             fprintf(fp, "        {\n");
             fprintf(fp, "            \"source\": %d,\n", get<1>(transmissionChain[i]));
             fprintf(fp, "            \"target\": %d,\n", get<3>(transmissionChain[i]));
+            fprintf(fp, "            \"state\": %c,\n", get<2>(transmissionChain[i]));
             fprintf(fp, "            \"type\": \"%.2f\"\n", get<0>(transmissionChain[i])*timestep_in_data/(float)(day));
             if(k < l)
             {
@@ -346,10 +347,10 @@ public:
                 // cout<<"Testing for P"<<id<<"\n";
                 covid_test(eventq, currtime, 'Z');
             }
-            else
-            {
-                cout<<"DON'T TEST. ALREADY DONE. P"<<id<<"\n";
-            }
+            // else
+            // {
+            //     cout<<"DON'T TEST. ALREADY DONE. P"<<id<<"\n";
+            // }
         }
         else if(newstate=='N')
         {
@@ -759,8 +760,81 @@ void printTotalCount(const vector<tuple<int, int, int, int>> &totalCounts)
         printf("After Day %3d, S=%3d, E=%3d, I=%3d, R=%3d.\n", i, get<0>(counts), get<1>(counts), get<2>(counts), get<3>(counts));
     }
 }
+void __attribute__((optimize("O0"))) takeInputFromFile(const char *filename)
+{
+    if(FILE *fp=fopen(filename, "r"))
+    {
+        cout<<"Opened File\n";
+        char *nothing;
+        int a,d;
+        float x;
+        a=fscanf(fp, "%f", &x); p_app_d=x;
+        a=fscanf(fp, "%f", &x); p_tested=x;
+        a=fscanf(fp, "%f", &x); p_test_high_contact=x;
+        a=fscanf(fp, "%f", &x); p_test_low_contact=x;
+        a=fscanf(fp, "%f", &x); p_traced=x;
+        a=fscanf(fp, "%f", &x); p_mask=x;
+        a=fscanf(fp, "%f", &x); test_delay_d=x*day;
+        a=fscanf(fp, "%f", &x); trace_delay_manual_d=x*day;
+        a=fscanf(fp, "%f", &x); trace_delay_app_d=x*day;
+        a=fscanf(fp, "%d", &d); manual_tracing_threshold=d;
+        a=fscanf(fp, "%d", &d); app_tracing_threshold=d;
+        a=fscanf(fp, "%f", &x); mask_reduction_out_d=x;
+        a=fscanf(fp, "%f", &x); mask_reduction_in_d=x;
+        a=fscanf(fp, "%d", &d); tracelength_d=d*day;
+        a=fscanf(fp, "%d", &d); quarantine_length=d*day;
+        a=fscanf(fp, "%f", &x); incubation_period=x*day;
+        a=fscanf(fp, "%f", &x); prodromal_period=x*day;
+        a=fscanf(fp, "%f", &x); p_asymptomatic=x;
+        a=fscanf(fp, "%f", &x); p_paucisymptomatic=x;
+        a=fscanf(fp, "%f", &x); p_mildsymptomatic=x;
+        a=fscanf(fp, "%f", &x); p_severesymptomatic=x;
+        a=fscanf(fp, "%f", &x); infectious_period=x*day;
+        a=fscanf(fp, "%f", &x); p_transmission=x;
+        a=fscanf(fp, "%f", &x); low_risk_adjustment=x;
+        fclose(fp);
+        printf("p_app_d: %f\n"
+                "p_tested: %f\n"
+                "p_test_high_contact: %f\n"
+                "p_test_low_contact: %f\n\n",
+                p_app_d, p_tested, p_test_high_contact, p_test_low_contact);
+    }
+}
 int main(int argc, char const *argv[])
 {
+    if(argc>1)
+    {
+        if(argc>1)
+        {
+            takeInputFromFile(argv[1]);
+        }
+    }
+    // PRINT PARAMETERS:
+    printf("p_app_d: %f\n"
+            "p_tested: %f\n"
+            "p_test_high_contact: %f\n"
+            "p_test_low_contact: %f\n"
+            "p_traced: %f\n"
+            "p_mask: %f\n"
+            "test_delay_d: %f\n"
+            "trace_delay_manual_d: %f\n"
+            "trace_delay_app_d: %f\n"
+            "manual_tracing_threshold: %d\n"
+            "app_tracing_threshold: %d\n"
+            "mask_reduction_out_d: %f\n"
+            "mask_reduction_in_d: %f\n"
+            "tracelength_d: %d\n"
+            "quarantine_length: %d\n"
+            "incubation_period: %f\n"
+            "prodromal_period: %f\n"
+            "p_asymptomatic: %f\n"
+            "p_paucisymptomatic: %f\n"
+            "p_mildsymptomatic: %f\n"
+            "p_severesymptomatic: %f\n"
+            "infectious_period: %f\n"
+            "p_transmission: %f\n"
+            "low_risk_adjustment: %f\n",
+            p_app_d, p_tested, p_test_high_contact, p_test_low_contact, p_traced, p_mask, test_delay_d, trace_delay_manual_d, trace_delay_app_d, manual_tracing_threshold, app_tracing_threshold, mask_reduction_out_d, mask_reduction_in_d, tracelength_d, quarantine_length, incubation_period, prodromal_period, p_asymptomatic, p_paucisymptomatic, p_mildsymptomatic, p_severesymptomatic, infectious_period, p_transmission, low_risk_adjustment);
     srand(time(0));
     bool printTimeline=false;
     // float p_mask=0.0, p_app=0.0;
@@ -774,7 +848,7 @@ int main(int argc, char const *argv[])
     student_ids.clear();
     contactdict.clear();
     std::chrono::steady_clock::time_point begin_reading = std::chrono::steady_clock::now();
-    string filename="contacts_50000_28_Day";
+    string filename="contacts/contacts_50000_28_Day";
     // int rows=parseCSVFast("contacts_50000_28Day", contactdict, student_ids);
     for(int i=1; i<=28; i++)
     {
@@ -860,6 +934,11 @@ int main(int argc, char const *argv[])
     vector<tuple<int, int, char, int, char>> transmissionChain;
     bool done=false;
     if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), patient_zero_index, exposed, total_infected);}
+    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[2], exposed, total_infected);}
+    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[3], exposed, total_infected);}
+    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[4], exposed, total_infected);}
+    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[5], exposed, total_infected);}
+    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[6], exposed, total_infected);}
     pair<int, char> event;
     while(!done)
     {
@@ -925,7 +1004,7 @@ int main(int argc, char const *argv[])
                 int source=get<0>(contactdict[curr_time-periodic_boundary_modifier][i]), target=get<1>(contactdict[curr_time-periodic_boundary_modifier][i]);
                 bool high_risk = get<2>(contactdict[curr_time-periodic_boundary_modifier][i]);
                 // cout<<"OK6\n";
-                if(!(studentlist[source].state=='S' && studentlist[target].state=='S') && !(studentlist[source].in_quarantine || studentlist[target].in_quarantine) && !(studentlist[source].state=='R' || studentlist[target].state=='R'))
+                if(!(studentlist[source].state=='S' && studentlist[target].state=='S') && !(studentlist[source].in_quarantine || studentlist[target].in_quarantine))// && !(studentlist[source].state=='R' || studentlist[target].state=='R'))
                 {
                     studentlist[source].add_contact(target, curr_time, high_risk);
                     studentlist[target].add_contact(source, curr_time, high_risk);

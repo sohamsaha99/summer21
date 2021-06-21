@@ -15,4 +15,7 @@ targets = edges[, 2]
 
 expected_arrivals_per_day = round(day*contact_rate_per_sec)
 arrival_times = cumsum(rexp(expected_arrivals_per_day, rate = contact_rate_per_sec))
-while(arr)
+while(arrival_times[length(arrival_times)] < 28*day)
+{
+    arrival_times[1:expected_arrivals_per_day + length(arrival_times)] = cumsum(rexp(expected_arrivals_per_day, rate = contact_rate_per_sec))
+}
