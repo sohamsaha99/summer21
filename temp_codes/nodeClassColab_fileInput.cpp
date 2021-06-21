@@ -270,7 +270,7 @@ public:
     bool has_app;
     bool awaiting_result;
     bool testedPositive; // set to true if tested positive sometime (so that we don't test again and again the same person even after receiving a positive result)
-    nodeClass(int myid, float param_p_app=p_app_d, float param_p_mask=p_mask, float param_mask_reduction_out=1.0, float param_mask_reduction_in=1.0)
+    nodeClass(int myid, float param_p_app=p_app_d, float param_p_mask=p_mask, float param_mask_reduction_out=mask_reduction_out_d, float param_mask_reduction_in=mask_reduction_in_d)
     {
         state='S';
         // substate='X';
