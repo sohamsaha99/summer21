@@ -6,6 +6,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from plot_dailydata import plot_dailydata
+from plot_tests import plot_tests
+from plot_transmission import plot_transmission
+from plot_trace import plot_trace
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -136,12 +140,16 @@ output_parameters = html.Div(id="output_parameters")
 # running_status = html.Div(id="running_status")
 dailydata_graph_stacked = dcc.Graph(id="dailydata_graph_stacked", style={'height': '100vh'})
 dailydata_graph_line = dcc.Graph(id="dailydata_graph_line", style={'height': '100vh'})
-dailydata_graph = html.Div(children=
+tests_reason_graph = dcc.Graph(id="tests_reason_graph")
+transmission_state_graph = dcc.Graph(id="transmission_state_graph")
+test_trace_graph = html.Div(children=
     [
-        html.Div(children=[dailydata_graph_stacked]),
-        html.Div(children=[dailydata_graph_line])
-    ]
+        html.Div(children=[tests_reason_graph], className="six columns"),
+        html.Div(children=[transmission_state_graph], className="six columns")
+    ],
+    className="row"
 )
+trace_positive_graph = dcc.Graph(id="trace_positive_graph")
 app.layout = html.Div(children=
     [
         header_text,
@@ -151,7 +159,9 @@ app.layout = html.Div(children=
         output_parameters,
         # running_status,
         dailydata_graph_stacked,
-        dailydata_graph_line
+        dailydata_graph_line,
+        test_trace_graph,
+        trace_positive_graph
     ]
 )
 @app.callback(
@@ -175,11 +185,21 @@ def print_parameters(n_clicks, *vals):
 @app.callback(
     Output(component_id="dailydata_graph_stacked", component_property="figure"),
     Output(component_id="dailydata_graph_line", component_property="figure"),
+    Output(component_id="tests_reason_graph", component_property="figure"),
+    Output(component_id="transmission_state_graph", component_property="figure"),
+    Output(component_id="trace_positive_graph", component_property="figure"),
     Input(component_id="output_parameters", component_property="children")
 )
 def update_dailyplot(v):
     print("Updating plot after "+v)
-    return plot_dailydata()
+    return plot_dailydata()+[plot_tests(), plot_transmission(), plot_trace()]
+
+# @app.callback(
+#     Output(component_id="tests_reason_graph", component_property="figure"),
+#     Input(component_id="output_parameters", component_property="children")
+# )
+# def update_testsplot(v):
+#     return plot_tests()
 
 
 if __name__ == '__main__':

@@ -230,7 +230,7 @@ void dumpJSONtransmissionChain(string filename, const vector<tuple<int, int, cha
             fprintf(fp, "        {\n");
             fprintf(fp, "            \"source\": %d,\n", get<1>(transmissionChain[i]));
             fprintf(fp, "            \"target\": %d,\n", get<3>(transmissionChain[i]));
-            fprintf(fp, "            \"state\": %c,\n", get<2>(transmissionChain[i]));
+            fprintf(fp, "            \"state\": \"%c\",\n", get<2>(transmissionChain[i]));
             fprintf(fp, "            \"type\": \"%.2f\"\n", get<0>(transmissionChain[i])*timestep_in_data/(float)(day));
             if(k < l)
             {
@@ -793,11 +793,19 @@ void __attribute__((optimize("O0"))) takeInputFromFile(const char *filename)
         a=fscanf(fp, "%f", &x); p_transmission=x;
         a=fscanf(fp, "%f", &x); low_risk_adjustment=x;
         fclose(fp);
-        printf("p_app_d: %f\n"
-                "p_tested: %f\n"
-                "p_test_high_contact: %f\n"
-                "p_test_low_contact: %f\n\n",
-                p_app_d, p_tested, p_test_high_contact, p_test_low_contact);
+        // printf("p_app_d: %f\n"
+        //         "p_tested: %f\n"
+        //         "p_test_high_contact: %f\n"
+        //         "p_test_low_contact: %f\n\n",
+        //         p_app_d, p_tested, p_test_high_contact, p_test_low_contact);
+        latency_period=incubation_period - prodromal_period;
+        rnorm_latency_period=normal_distribution<float>(latency_period, latency_period/7.0);
+        rnorm_prodromal_period=normal_distribution<float>(prodromal_period, prodromal_period/7.0);
+        rnorm_test_delay=normal_distribution<float>(test_delay_d, test_delay_d/7.0);
+        rnorm_infectious_period=normal_distribution<float>(infectious_period, infectious_period/7.0);
+        rnorm_trace_delay_manual=normal_distribution<float>(trace_delay_manual_d, trace_delay_manual_d/7.0);
+        rnorm_trace_delay_app=normal_distribution<float>(trace_delay_app_d, trace_delay_app_d/7.0);
+        sample_I_class=discrete_distribution<int>({p_asymptomatic, p_paucisymptomatic, p_mildsymptomatic, p_severesymptomatic});
     }
 }
 int main(int argc, char const *argv[])
