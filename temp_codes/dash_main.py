@@ -150,6 +150,7 @@ test_trace_graph = html.Div(children=
     className="row"
 )
 trace_positive_graph = dcc.Graph(id="trace_positive_graph")
+# download_tests_button = 
 app.layout = html.Div(children=
     [
         header_text,
@@ -204,5 +205,5 @@ def update_dailyplot(v):
 
 if __name__ == '__main__':
     # print(__name__)
-    app.run_server(debug=True, port=8060)
+    app.run_server(debug=True, port=8050)
 
