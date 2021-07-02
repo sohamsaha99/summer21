@@ -1,14 +1,14 @@
 library(lme4)
 
-n = 200
-set.seed(2001)
+n = 100
+set.seed(1)
 par(mfrow=c(2, 3))
 # Skewness in degree
-C = round(exp(rnorm(n, 3, 0.3)))
+C = ceiling(exp(rnorm(n, 3.0, 0.7)))
 hist(C)
 
 # p is constant
-p = 0.1
+p = 0.2
 I_1 = rbinom(length(C), C, p)
 hist(I_1)
 hist(I_1/C)
@@ -26,27 +26,25 @@ hist(I_2)
 hist(I_2/C)
 
 # Fitting GLMM
-dat.ungroup = function(I, C)
-{
-    k = 0
-    n = length(C)
-    df = list(outcome=NA, group=NA)
-    for(i in 1:n)
-    {
-        df$outcome[k + 1:I[i]] = 1
-        df$group[k + 1:I[i]] = paste(i)
-        df$outcome[k + I[i] + 1:(C[i]-I[i])] = 0
-        df$group[k + I[i] + 1:(C[i]-I[i])] = paste(i)
-        k = k + C[i]
-    }
-    return(data.frame(df))
-}
+source("utilsOverdispersion.R")
 df1 = dat.ungroup(I_1, C)
 model1 = glmer(outcome~1|group, family='binomial', data=df1)
 print("##### MODEL 1 #####")
 print(summary(model1))
+# as.data.frame(VarCorr(model1))[1, 5]
+
 df2 = dat.ungroup(I_2, C)
 model2 = glmer(outcome~1|group, family='binomial', data=df2)
 print("##### MODEL 2 #####")
 print(summary(model2))
-# model0 = glmer(cbind(I_2, C-I_2)~1|1, family='binomial')
+
+B = 1000
+vrnc = NULL
+for(b in 1:B)
+{
+    df = gen.dat.fixed(n, p)
+    model = glmer(outcome~1|group, family='binomial', data=df)
+    vrnc[b] = as.data.frame(VarCorr(model))[1, 4]
+    if(b%%100==0){print(b)}
+}
+

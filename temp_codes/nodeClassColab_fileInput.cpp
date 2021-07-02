@@ -1012,7 +1012,7 @@ int main(int argc, char const *argv[])
                 int source=get<0>(contactdict[curr_time-periodic_boundary_modifier][i]), target=get<1>(contactdict[curr_time-periodic_boundary_modifier][i]);
                 bool high_risk = get<2>(contactdict[curr_time-periodic_boundary_modifier][i]);
                 // cout<<"OK6\n";
-                if(!(studentlist[source].state=='S' && studentlist[target].state=='S') && !(studentlist[source].in_quarantine || studentlist[target].in_quarantine))// && !(studentlist[source].state=='R' || studentlist[target].state=='R'))
+                if(!(studentlist[source].state=='S' && studentlist[target].state=='S') && !(studentlist[source].in_quarantine || studentlist[target].in_quarantine) && !(studentlist[source].state=='R' || studentlist[target].state=='R'))
                 {
                     studentlist[source].add_contact(target, curr_time, high_risk);
                     studentlist[target].add_contact(source, curr_time, high_risk);
