@@ -1,3 +1,6 @@
+/////////////////////////////////////////////////////////////////////
+//////          MODIFY N_students inside main()     /////////////////
+/////////////////////////////////////////////////////////////////////
 #define ROUND_2_INT(f) ((int)((f) >= 0.0 ? ((f) + 0.5) : ((f) - 0.5)))
 // #define ROUND_2_INT(f) ((int)((f) >= 0.0 ? ((f) + 0.5) : (1.0)))
 
@@ -8,10 +11,10 @@ using namespace std;
 const int day=24*60*60;
 const int timestep_in_data=300;
 float p_app_d=0.0;
-float p_tested=0.50;
+float p_tested=0.60;
 float p_test_high_contact=0.95;
-float p_test_low_contact=0.80;
-float p_traced=0.5;
+float p_test_low_contact=0.95;
+float p_traced=0.2;
 float p_mask=0.00;
 float test_delay_d=1.0*day;
 float trace_delay_manual_d=1.0*day;
@@ -26,14 +29,14 @@ float incubation_period=5.2*day;
 float prodromal_period=1.5*day;
 float latency_period=incubation_period - prodromal_period;
 float p_asymptomatic=0.60;
-float p_paucisymptomatic=0.45*(1 - p_asymptomatic);
-float p_mildsymptomatic=0.45*(1 - p_asymptomatic);
-float p_severesymptomatic=0.10*(1 - p_asymptomatic);
+float p_paucisymptomatic=0.50*(1 - p_asymptomatic);
+float p_mildsymptomatic=0.50*(1 - p_asymptomatic);
+float p_severesymptomatic=0.00*(1 - p_asymptomatic);
 // float infectious_period=7.5*day - incubation_period;
 float infectious_period=9.5*day - incubation_period;
 
-float p_transmission=0.3; ////////////////////////////////////////////////////////////////////////////////////////////
-float low_risk_adjustment=0.7;////////////////////////////////////////////////////////////////////////////////////////
+float p_transmission=0.2; ////////////////////////////////////////////////////////////////////////////////////////////
+float low_risk_adjustment=1.0;////////////////////////////////////////////////////////////////////////////////////////
 
 random_device rd;
 mt19937 gen(rd());
@@ -330,7 +333,7 @@ public:
     static int testId; // Increment by 1 for each new test
     static unordered_map<int, int> ongoing_tests; // Ongoing tests patient id, test id
     static vector<bool> positive_patients;
-    static vector<pair<int, char>> symptoms;
+    static vector<tuple<int, char, int>> symptoms;
     char state;     // S, E, Ip,Ias,Ips,Ims, Iss, R (Denoted here by S, E, I, J, K, L, M, R)
     // char substate;  // Mainly for state I: L for presympt, P - Pauci, A - Asy, M - Mild, S - Severe, if state is not I, set to X
     bool infectious;
@@ -480,7 +483,7 @@ public:
             dampingfactor=1.0;
         }
         // cout<<id<<I<<" ";
-        symptoms.push_back({id, I});
+        symptoms.push_back({id, I, time_to_i});
         // if(I != 'J')
         // {
         //     if(I=='M' || static_cast <float>(rand())/static_cast <float>(RAND_MAX) < param_p_tested)
@@ -784,8 +787,8 @@ public:
     {
         if(FILE *fp=fopen(filename.c_str(), "w"))
         {
-            fprintf(fp, "id, symptom\n");
-            pair<int, char> infection;
+            fprintf(fp, "id, symptom, time\n");
+            tuple<int, char, int> infection;
             string symptomsString;
             for(int i=0; i<symptoms.size(); i++)
             {
@@ -810,7 +813,7 @@ public:
                 {
                     symptomsString="ERROR";
                 }
-                fprintf(fp, "%d, %s\n", get<0>(infection), symptomsString.c_str());
+                fprintf(fp, "%d, %s, %.2f\n", get<0>(infection), symptomsString.c_str(), get<2>(infection)*timestep_in_data/(float)(day));
             }
             fclose(fp);
         }
@@ -821,7 +824,7 @@ vector<tuple<int, int, int, bool, bool, int>> nodeClass::official_tracing_data={
 int nodeClass::testId=0;
 unordered_map<int, int> nodeClass::ongoing_tests={};
 vector<bool> nodeClass::positive_patients={};
-vector<pair<int, char>> nodeClass::symptoms={};
+vector<tuple<int, char, int>> nodeClass::symptoms={};
 // void simulatePandemic(vector<nodeClass> &studentlist, vector<int> &student_id_list, vector<vector<pair<int, char>>> &eventq, vector<vector<tuple<int, int, bool>>> &contactdict, int curr_time=0, int final_time=-1, vector<tuple<int, int, int>> &transmissionChain, vector<tuple<int, int, int, int>> &totalCounts, bool allSusceptible=true)
 // {
 //     int first_time;
@@ -974,7 +977,7 @@ int main(int argc, char const *argv[])
     string household_edges_file_prev="", outer_edges_file_prev="";
     vector<pair<int, int>> household_edges={}, outer_edges={};
 
-    int N_students=500;
+    int N_students=5000;
     vector<nodeClass> studentlist;
     for(int i=0; i<=N_students; i++)
     {
@@ -1106,8 +1109,8 @@ int main(int argc, char const *argv[])
                             transmissionChain.push_back(make_tuple(curr_time, source, studentlist[source].state, target, studentlist[target].state));
                             if(printTimeline){printf("Day %6.2f : P%d was exposed to infected P%d. E=%d. total_infected=%d\n", curr_time*timestep_in_data/(float)(day), target, source, exposed, total_infected);}
                         }
-                        usefulContacts.push_back(make_tuple(curr_time, source, studentlist[source].state, target, studentlist[target].state));
                     }
+                    usefulContacts.push_back(make_tuple(curr_time, source, studentlist[source].state, target, studentlist[target].state));
                 }
             }
         }

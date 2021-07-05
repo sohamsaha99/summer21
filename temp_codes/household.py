@@ -12,7 +12,7 @@ n = 5000 # Number of nodes. Node id: 1, ..., 500
 # h7 = 6073 # 7 person
 # h8 = 3195 # 8 person
 
-house_size_probs = [269898, 209573, 152959, 122195, 43327, 17398, 6073, 3195]
+house_size_probs = [4.8, 11.8, 16.3, 26.81, 19.99, 9.37, 9.37, 9.37, 2.92]
 house_size_probs = [x/sum(house_size_probs) for x in house_size_probs]
 household_sizes = []
 household_edges = []
@@ -32,7 +32,7 @@ with open("familyedgelist.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerows(household_edges)
 
-outer_degrees = np.random.gamma(shape=1.65 ,scale=5.0, size=n) # shape=1.65, scale=0.61
+outer_degrees = np.random.gamma(shape=1.65 ,scale=3, size=n) # shape=1.65, scale=0.61
 G = expected_degree_graph(outer_degrees)
 G.remove_edges_from(selfloop_edges(G))
 
