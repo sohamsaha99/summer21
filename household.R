@@ -30,4 +30,4 @@ while(num < n)
     num = num + temp
 }
 
-
+outer_degrees = rgamma(n, shape=1.65, scale=0.61)

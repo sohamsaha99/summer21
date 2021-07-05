@@ -1,6 +1,6 @@
 library(dplyr)
 tests = read.table("tests.txt", sep=",", header=TRUE)
-tests = tests[tests$collect>=200, ]
+# tests = tests[tests$collect>=200, ]
 trace = read.table("trace.txt", sep=",", header=TRUE)
 
 tests.p <- tests[tests$result==" POSITIVE",]

@@ -8,10 +8,10 @@ using namespace std;
 const int day=24*60*60;
 const int timestep_in_data=300;
 float p_app_d=0.0;
-float p_tested=0.00;
+float p_tested=0.50;
 float p_test_high_contact=0.95;
 float p_test_low_contact=0.80;
-float p_traced=0.0;
+float p_traced=0.5;
 float p_mask=0.00;
 float test_delay_d=1.0*day;
 float trace_delay_manual_d=1.0*day;
@@ -26,9 +26,9 @@ float incubation_period=5.2*day;
 float prodromal_period=1.5*day;
 float latency_period=incubation_period - prodromal_period;
 float p_asymptomatic=0.60;
-float p_paucisymptomatic=0.25*(1 - p_asymptomatic);
-float p_mildsymptomatic=0.75*(1 - p_asymptomatic);
-float p_severesymptomatic=0.00*(1 - p_asymptomatic);
+float p_paucisymptomatic=0.45*(1 - p_asymptomatic);
+float p_mildsymptomatic=0.45*(1 - p_asymptomatic);
+float p_severesymptomatic=0.10*(1 - p_asymptomatic);
 // float infectious_period=7.5*day - incubation_period;
 float infectious_period=9.5*day - incubation_period;
 
@@ -74,10 +74,11 @@ inline void insertEvent(vector<vector<pair<int, char>>> &eventq, int currtime, p
 }
 void insertContactEvent(vector<vector<tuple<int, int, bool>>> &contactdict, int timestamp, tuple<int, int, bool> event)
 {
-    vector<tuple<int, int, bool>> BLANK={};
+    // vector<tuple<int, int, bool>> BLANK={};
     while(contactdict.size()<=timestamp)
     {
-        contactdict.push_back(BLANK);
+        // contactdict.push_back(BLANK);
+        contactdict.push_back({});
     }
     contactdict[timestamp].push_back(event);
 }
@@ -134,6 +135,67 @@ int parseCSVFast(string filename, vector<vector<tuple<int, int, bool>>> &contact
         fclose(fp);
     }
     return k;
+}
+void generateContactEvents(string household_edges_file, string outer_edges_file, vector<vector<tuple<int, int, bool>>> &contactdict, vector<pair<int, int>> &household_edges, vector<pair<int, int>> &outer_edges, string &household_edges_file_prev, string &outer_edges_file_prev, int N_students)
+{
+    if(household_edges_file_prev!=household_edges_file)
+    {
+        printf("Got new file for family.\n");
+        // Read household_edges_file and insert in household_edges
+        int P1, P2, k=0;
+        if(FILE *fp=fopen(household_edges_file.c_str(), "r"))
+        {
+            household_edges.clear();
+            while(fscanf(fp, "%d,%d",&P1, &P2)==2)
+            {
+                if(P1<=N_students && P2<=N_students)
+                {
+                    k++;
+                    household_edges.push_back({P1, P2});
+                }
+            }
+            fclose(fp);
+            household_edges_file_prev=household_edges_file;
+        }
+    }
+    if(outer_edges_file_prev!=outer_edges_file)
+    {
+        printf("Got new file for outer.\n");
+        // Read outer_edges_file and insert in outer_edges
+        int P1, P2, k=0;
+        if(FILE *fp=fopen(outer_edges_file.c_str(), "r"))
+        {
+            outer_edges.clear();
+            while(fscanf(fp, "%d,%d",&P1, &P2)==2)
+            {
+                if(P1<=N_students && P2<=N_students)
+                {
+                    k++;
+                    outer_edges.push_back({P1, P2});
+                }
+            }
+            fclose(fp);
+            outer_edges_file_prev=outer_edges_file;
+        }
+    }
+    contactdict.clear();
+    for(int i=0; i<household_edges.size(); i++)
+    {
+        int t=rand()%(day/timestep_in_data)+1;
+        insertContactEvent(contactdict, t, {get<0>(household_edges[i]), get<1>(household_edges[i]), true});
+    }
+    for(int i=0; i<outer_edges.size(); i++)
+    {
+        int t=rand()%(day/timestep_in_data)+1;
+        if(static_cast<float>(rand())/static_cast<float>(RAND_MAX) < 0.9)
+        {
+            insertContactEvent(contactdict, t, {get<0>(outer_edges[i]), get<1>(outer_edges[i]), false});
+        }
+        else
+        {
+            insertContactEvent(contactdict, t, {get<0>(outer_edges[i]), get<1>(outer_edges[i]), true});
+        }
+    }
 }
 void showContactEvents(const vector<vector<tuple<int, int, bool>>> &contactdict)
 {
@@ -246,6 +308,20 @@ void dumpJSONtransmissionChain(string filename, const vector<tuple<int, int, cha
         fclose(fp);
     }
 }
+void dumpUsefulContacts(string filename, const vector<tuple<int, int, char, int, char>> &usefulContacts)
+{
+    if(FILE *fp=fopen(filename.c_str(), "w"))
+    {
+        tuple<int, int, char, int, char> contact;
+        fprintf(fp, "time, P1, S1, P2, S2\n");
+        for(int i=0; i<usefulContacts.size(); i++)
+        {
+            contact=usefulContacts[i];
+            fprintf(fp, "%.2f, %d, %c, %d, %c\n", get<0>(contact)*timestep_in_data/(float)(day), get<1>(contact), get<2>(contact), get<3>(contact), get<4>(contact));
+        }
+        fclose(fp);
+    }
+}
 class nodeClass
 {
 public:
@@ -254,6 +330,7 @@ public:
     static int testId; // Increment by 1 for each new test
     static unordered_map<int, int> ongoing_tests; // Ongoing tests patient id, test id
     static vector<bool> positive_patients;
+    static vector<pair<int, char>> symptoms;
     char state;     // S, E, Ip,Ias,Ips,Ims, Iss, R (Denoted here by S, E, I, J, K, L, M, R)
     // char substate;  // Mainly for state I: L for presympt, P - Pauci, A - Asy, M - Mild, S - Severe, if state is not I, set to X
     bool infectious;
@@ -400,8 +477,10 @@ public:
         }
         else
         {
-            dampingfactor=0.5;
+            dampingfactor=1.0;
         }
+        // cout<<id<<I<<" ";
+        symptoms.push_back({id, I});
         // if(I != 'J')
         // {
         //     if(I=='M' || static_cast <float>(rand())/static_cast <float>(RAND_MAX) < param_p_tested)
@@ -701,12 +780,48 @@ public:
     {
         positive_patients.resize(N_students+1, false);
     }
+    static void dumpSymptoms(string filename)
+    {
+        if(FILE *fp=fopen(filename.c_str(), "w"))
+        {
+            fprintf(fp, "id, symptom\n");
+            pair<int, char> infection;
+            string symptomsString;
+            for(int i=0; i<symptoms.size(); i++)
+            {
+                infection=symptoms[i];
+                if(get<1>(infection)=='J')
+                {
+                    symptomsString="ASYMPTOMATIC";
+                }
+                else if(get<1>(infection)=='K')
+                {
+                    symptomsString="PAUCISYMPTOMATIC";
+                }
+                else if(get<1>(infection)=='L')
+                {
+                    symptomsString="MILDSYMPTOMATIC";
+                }
+                else if(get<1>(infection)=='M')
+                {
+                    symptomsString="SEVERESYMPTOMATIC";
+                }
+                else
+                {
+                    symptomsString="ERROR";
+                }
+                fprintf(fp, "%d, %s\n", get<0>(infection), symptomsString.c_str());
+            }
+            fclose(fp);
+        }
+    }
 };
 vector<tuple<int, int, char, bool, int, int>> nodeClass::official_tests_data={};
 vector<tuple<int, int, int, bool, bool, int>> nodeClass::official_tracing_data={};
 int nodeClass::testId=0;
 unordered_map<int, int> nodeClass::ongoing_tests={};
 vector<bool> nodeClass::positive_patients={};
+vector<pair<int, char>> nodeClass::symptoms={};
 // void simulatePandemic(vector<nodeClass> &studentlist, vector<int> &student_id_list, vector<vector<pair<int, char>>> &eventq, vector<vector<tuple<int, int, bool>>> &contactdict, int curr_time=0, int final_time=-1, vector<tuple<int, int, int>> &transmissionChain, vector<tuple<int, int, int, int>> &totalCounts, bool allSusceptible=true)
 // {
 //     int first_time;
@@ -844,6 +959,7 @@ int main(int argc, char const *argv[])
             "low_risk_adjustment: %f\n",
             p_app_d, p_tested, p_test_high_contact, p_test_low_contact, p_traced, p_mask, test_delay_d, trace_delay_manual_d, trace_delay_app_d, manual_tracing_threshold, app_tracing_threshold, mask_reduction_out_d, mask_reduction_in_d, tracelength_d, quarantine_length, incubation_period, prodromal_period, p_asymptomatic, p_paucisymptomatic, p_mildsymptomatic, p_severesymptomatic, infectious_period, p_transmission, low_risk_adjustment);
     srand(time(0));
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     bool printTimeline=false;
     // float p_mask=0.0, p_app=0.0;
     // string filename="contacts_50000_28.csv";
@@ -855,110 +971,50 @@ int main(int argc, char const *argv[])
     eventq.clear();
     student_ids.clear();
     contactdict.clear();
-    std::chrono::steady_clock::time_point begin_reading = std::chrono::steady_clock::now();
-    string filename="contacts/contacts_50000_28_Day";
-    // int rows=parseCSVFast("contacts_50000_28Day", contactdict, student_ids);
-    for(int i=1; i<=28; i++)
-    {
-        string filenametemp=filename+to_string(i)+".csv";
-        cout<<"File "<<i<<": "<<parseCSVFast(filenametemp, contactdict, student_ids)<<"\n";
-    }
-    cout<<contactdict.size()<<"\n"<<student_ids.size()<<"\n"<<"\n";
-    // parseCSVFast(filename, contactdict, student_ids);
-    // parseCSV(filename, contactdict, student_ids);
-    std::chrono::steady_clock::time_point end_reading = std::chrono::steady_clock::now();
-    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end_reading - begin_reading).count() << "[µs]" << std::endl;
-    cout<<"Hello "<<contactdict.size()<<"\n";
-    // showContactEvents(contactdict);
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    vector<int> student_id_list(student_ids.begin(), student_ids.end());
-    int N_students=student_id_list.size();
-    // cout<<N_students<<"\n";
-    nodeClass::initiatePositiveRecords(N_students);
-    int max_time=contactdict.size()-1;
-    int patient_zero_index=student_id_list[rand()%N_students];
-    patient_zero_index=student_id_list[1];
-    int initial_period_in_days=7*day/timestep_in_data;
-    float temp=0.0;
+    string household_edges_file_prev="", outer_edges_file_prev="";
+    vector<pair<int, int>> household_edges={}, outer_edges={};
+
+    int N_students=500;
     vector<nodeClass> studentlist;
-    int max_id=*max_element(student_id_list.begin(), student_id_list.end());
-    while(studentlist.size()<=max_id)
+    for(int i=0; i<=N_students; i++)
     {
-        studentlist.push_back(nodeClass(-1));
-    }
-    for(int i=0; i<student_id_list.size(); i++)
-    {
-        int sid=student_id_list[i];
-        studentlist[sid].id = sid;
-        if(studentlist[sid].has_app)
+        studentlist.push_back(nodeClass(i));
+        if(studentlist[i].has_app)
         {
-            students_with_apps.insert(sid);
+            students_with_apps.insert(i);
         }
     }
-    int first_time=-1, curr_time=0;
-    for(int i=0; i<contactdict.size(); i++)
+    int curr_time=1;
+    int exposed=0, infectious=0, total_infected=0, quarantines=0, false_quaranties=0;
+    while(total_infected<6)
     {
-        for(int j=0; j<contactdict[i].size(); j++)
+        int temp=(rand()%N_students)+1;
+        if(studentlist[temp].state=='S')
         {
-            if(get<0>(contactdict[i][j])==patient_zero_index || get<1>(contactdict[i][j])==patient_zero_index)
-            {
-                first_time=i;
-                break;
-            }
-        }
-        if(first_time!=-1)
-        {
-            break;
+            studentlist[temp].exposure(eventq, curr_time);
+            exposed += 1;
+            total_infected += 1;
+            if(printTimeline){printf("Patient %d exposed on day %6.2f fro external source.\n", temp, curr_time*timestep_in_data/(float)day);}
         }
     }
-    cout<<patient_zero_index<<" "<<N_students<<" "<<first_time<<" OK1\n";
-    // for(int i=0; i<student_id_list.size(); i++)
-    // {
-    //     cout<<student_id_list[i]<<" ";
-    // }
-    // cout<<"OK2\n";
-    // for(int i=0; i<=max_id; i++)
-    // {
-    //     cout<<studentlist[i].id<<" ";
-    // }
-    // cout<<"\n";
-    curr_time=first_time+rand()%initial_period_in_days;
-    vector<tuple<int, int, bool>> BLANK={};
-    while(contactdict.size()<=curr_time)
-    {
-        contactdict.push_back(BLANK);
-    }
-    max_time=contactdict.size()-1;
-    cout<<"Max time: "<<max_time<<" \n";
-    cout<<"Cur time: "<<curr_time<<" \n";
-    studentlist[patient_zero_index].exposure(eventq, curr_time);
-    studentlist[student_id_list[2]].exposure(eventq, curr_time);
-    studentlist[student_id_list[3]].exposure(eventq, curr_time);
-    studentlist[student_id_list[4]].exposure(eventq, curr_time);
-    studentlist[student_id_list[5]].exposure(eventq, curr_time);
-    studentlist[student_id_list[6]].exposure(eventq, curr_time);
-    int exposed=6, infectious=0, total_infected=6, quarantines=0, false_quaranties=0, periodic_boundary_modifier=0;
+
+    nodeClass::initiatePositiveRecords(N_students);
+    float temp=0.0;
+    int hour;
+
     vector<tuple<int, int, int, int>> totalCounts{make_tuple(N_students, 0, 0, 0)};
     vector<tuple<int, int, char, int, char>> transmissionChain;
+    vector<tuple<int, int, char, int, char>> usefulContacts;
     bool done=false;
-    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), patient_zero_index, exposed, total_infected);}
-    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[2], exposed, total_infected);}
-    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[3], exposed, total_infected);}
-    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[4], exposed, total_infected);}
-    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[5], exposed, total_infected);}
-    if(printTimeline){printf("Day %6.2f : First patient P%d. E=%d, I=0, total_infected=%d\n", curr_time*timestep_in_data/(float)(day), student_id_list[6], exposed, total_infected);}
     pair<int, char> event;
     while(!done)
     {
-        // cout<<curr_time<<" OK3\n";
-        // showEvents(eventq);
         if(!eventq[curr_time].empty())
         {
             int l=eventq[curr_time].size();
             for(int i=0; i<l; i++)
             {
                 event=eventq[curr_time][i];
-                // cout<<"OK4\n";
                 char eventcode=get<1>(event);
                 int sid=get<0>(event);
                 if(eventcode=='C' && !studentlist[sid].in_quarantine)
@@ -995,23 +1051,26 @@ int main(int argc, char const *argv[])
             }
             eventq[curr_time].clear();
         }
-        if(curr_time-periodic_boundary_modifier>max_time)
+        hour = curr_time%(day/timestep_in_data);
+        if(hour==1)
         {
-            periodic_boundary_modifier+=max_time+1;
-            if(printTimeline){printf("Day %6.2f : periodic_boundary_modifier=%d\n", curr_time*timestep_in_data/(float)(day), periodic_boundary_modifier);}
+            int date = curr_time*timestep_in_data/day;
+            if(date<=10)
+            {
+                generateContactEvents("familyedgelist.csv", "outeredgelist.csv", contactdict, household_edges, outer_edges, household_edges_file_prev, outer_edges_file_prev, N_students);
+            }
+            else
+            {
+                generateContactEvents("familyedgelist.csv", "outeredgelist.csv", contactdict, household_edges, outer_edges, household_edges_file_prev, outer_edges_file_prev, N_students);
+            }
         }
-        // cout<<(curr_time-periodic_boundary_modifier)<<"A\n";
-        if(!contactdict[curr_time-periodic_boundary_modifier].empty())
+        if(!contactdict[hour].empty())
         {
-            // cout<<"B\n";
-            int l=contactdict[curr_time-periodic_boundary_modifier].size();
-            // cout<<"B2\n";
+            int l=contactdict[hour].size();
             for(int i=0; i<l; i++)
             {
-                // cout<<l<<" OK5\n";
-                int source=get<0>(contactdict[curr_time-periodic_boundary_modifier][i]), target=get<1>(contactdict[curr_time-periodic_boundary_modifier][i]);
-                bool high_risk = get<2>(contactdict[curr_time-periodic_boundary_modifier][i]);
-                // cout<<"OK6\n";
+                int source=get<0>(contactdict[hour][i]), target=get<1>(contactdict[hour][i]);
+                bool high_risk = get<2>(contactdict[hour][i]);
                 if(!(studentlist[source].state=='S' && studentlist[target].state=='S') && !(studentlist[source].in_quarantine || studentlist[target].in_quarantine) && !(studentlist[source].state=='R' || studentlist[target].state=='R'))
                 {
                     studentlist[source].add_contact(target, curr_time, high_risk);
@@ -1047,13 +1106,13 @@ int main(int argc, char const *argv[])
                             transmissionChain.push_back(make_tuple(curr_time, source, studentlist[source].state, target, studentlist[target].state));
                             if(printTimeline){printf("Day %6.2f : P%d was exposed to infected P%d. E=%d. total_infected=%d\n", curr_time*timestep_in_data/(float)(day), target, source, exposed, total_infected);}
                         }
+                        usefulContacts.push_back(make_tuple(curr_time, source, studentlist[source].state, target, studentlist[target].state));
                     }
                 }
             }
         }
         if(exposed+infectious==0)
         {
-            // cout<<"Hi, probably done\n";
             done=true;
             // break;
         }
@@ -1068,9 +1127,11 @@ int main(int argc, char const *argv[])
     std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
     // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]" << std::endl;
     // printTotalCount(totalCounts);
-    dumpCSVtotalCounts("dailydata.txt", totalCounts);
-    dumpJSONtransmissionChain("graphdata.json", transmissionChain);
-    nodeClass::dumpOfficialTestsData("tests.txt");
-    nodeClass::dumpOfficialTracingData("trace.txt");
+    dumpCSVtotalCounts("outputs/dailydata.txt", totalCounts);
+    dumpJSONtransmissionChain("outputs/graphdata.json", transmissionChain);
+    dumpUsefulContacts("outputs/usefulcontacts.txt", usefulContacts);
+    nodeClass::dumpOfficialTestsData("outputs/tests.txt");
+    nodeClass::dumpOfficialTracingData("outputs/trace.txt");
+    nodeClass::dumpSymptoms("outputs/infectiontypes.txt");
     return 0;
 }
