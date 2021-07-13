@@ -11,10 +11,10 @@ using namespace std;
 const int day=24*60*60;
 const int timestep_in_data=300;
 float p_app_d=0.0;
-float p_tested=0.60;
+float p_tested=0.40;
 float p_test_high_contact=0.95;
 float p_test_low_contact=0.95;
-float p_traced=0.2;
+float p_traced=0.5;
 float p_mask=0.00;
 float test_delay_d=1.0*day;
 float trace_delay_manual_d=1.0*day;
@@ -28,14 +28,14 @@ int quarantine_length=14*day;
 float incubation_period=5.2*day;
 float prodromal_period=1.5*day;
 float latency_period=incubation_period - prodromal_period;
-float p_asymptomatic=0.60;
-float p_paucisymptomatic=0.50*(1 - p_asymptomatic);
-float p_mildsymptomatic=0.50*(1 - p_asymptomatic);
+float p_asymptomatic=0.90;
+float p_paucisymptomatic=0.0*(1 - p_asymptomatic);
+float p_mildsymptomatic=1.0*(1 - p_asymptomatic);
 float p_severesymptomatic=0.00*(1 - p_asymptomatic);
 // float infectious_period=7.5*day - incubation_period;
 float infectious_period=9.5*day - incubation_period;
 
-float p_transmission=0.2; ////////////////////////////////////////////////////////////////////////////////////////////
+float p_transmission=0.10; ////////////////////////////////////////////////////////////////////////////////////////////
 float low_risk_adjustment=1.0;////////////////////////////////////////////////////////////////////////////////////////
 
 random_device rd;
@@ -333,7 +333,8 @@ public:
     static int testId; // Increment by 1 for each new test
     static unordered_map<int, int> ongoing_tests; // Ongoing tests patient id, test id
     static vector<bool> positive_patients;
-    static vector<tuple<int, char, int>> symptoms;
+    static vector<tuple<int, char, int, int, int, int>> symptoms; // id, symptom, exposure.time, presympt.time, sympt.time, removed.time
+    static vector<tuple<int, int, char>> quarantine_records; // id, time, event ('B' for begin, 'E' for end)
     char state;     // S, E, Ip,Ias,Ips,Ims, Iss, R (Denoted here by S, E, I, J, K, L, M, R)
     // char substate;  // Mainly for state I: L for presympt, P - Pauci, A - Asy, M - Mild, S - Severe, if state is not I, set to X
     bool infectious;
@@ -350,6 +351,7 @@ public:
     bool has_app;
     bool awaiting_result;
     bool testedPositive; // set to true if tested positive sometime (so that we don't test again and again the same person even after receiving a positive result)
+    int quarantine_release_time; // set to -1 if the person is not in quarantine, else set to end of quarantine time.
     nodeClass(int myid, float param_p_app=p_app_d, float param_p_mask=p_mask, float param_mask_reduction_out=mask_reduction_out_d, float param_mask_reduction_in=mask_reduction_in_d)
     {
         state='S';
@@ -363,6 +365,7 @@ public:
         in_quarantine=false;
         awaiting_result=false;
         testedPositive=false;
+        quarantine_release_time=-1;
         id=myid;
         if(static_cast <float>(rand())/static_cast <float>(RAND_MAX) < param_p_mask)
         {
@@ -405,7 +408,12 @@ public:
     {
         if(newstate=='F')// END OF QUARANTINE
         {
-            in_quarantine=false;
+            if(in_quarantine & quarantine_release_time==currtime)
+            {
+                quarantine_records.push_back({id, currtime, 'E'}); // E: End of quarantine
+                in_quarantine=false;
+                quarantine_release_time=-1;
+            }
         }
         else if(newstate=='B' || newstate=='C')//B: Begin Quarantine, C: Begin Quarantine due to tracing
         {
@@ -436,7 +444,12 @@ public:
         {
             awaiting_result=false;
             ongoing_tests.erase(id);
+            if(in_quarantine) // Un-quarantine due to negative result. So don't check for quarantine_release_time
+            {
+                quarantine_records.push_back({id, currtime, 'E'});
+            }
             in_quarantine=false; // Negative people are released.
+            quarantine_release_time=-1;
         }
         else
         {
@@ -483,7 +496,6 @@ public:
             dampingfactor=1.0;
         }
         // cout<<id<<I<<" ";
-        symptoms.push_back({id, I, time_to_i});
         // if(I != 'J')
         // {
         //     if(I=='M' || static_cast <float>(rand())/static_cast <float>(RAND_MAX) < param_p_tested)
@@ -503,6 +515,7 @@ public:
         temp=((time_to_i*timestep_in_data)+rnorm_infectious_period(gen))/timestep_in_data;
         int time_to_r=ROUND_2_INT(temp);
         insertEvent(eventq, time_to_r, {id, 'R'});
+        symptoms.push_back({id, I, currtime, time_to_ip, time_to_i, time_to_r});
     }
     void add_contact(int student_id, int currtime, bool high_risk)
     {
@@ -686,7 +699,9 @@ public:
         {
             int eoq_time=currtime+param_quarantine_length;
             insertEvent(eventq, eoq_time, {id, 'F'});
+            quarantine_records.push_back({id, currtime, 'B'});
             in_quarantine=true;
+            quarantine_release_time=eoq_time;
         }
     }
     void printnode(int currtime=0)
@@ -787,8 +802,8 @@ public:
     {
         if(FILE *fp=fopen(filename.c_str(), "w"))
         {
-            fprintf(fp, "id, symptom, time\n");
-            tuple<int, char, int> infection;
+            fprintf(fp, "id, symptom.type, exposure.time, presympt.time, sympt.time, removed.time\n");
+            tuple<int, char, int, int, int, int> infection;
             string symptomsString;
             for(int i=0; i<symptoms.size(); i++)
             {
@@ -813,7 +828,21 @@ public:
                 {
                     symptomsString="ERROR";
                 }
-                fprintf(fp, "%d, %s, %.2f\n", get<0>(infection), symptomsString.c_str(), get<2>(infection)*timestep_in_data/(float)(day));
+                fprintf(fp, "%d, %s, %.2f, %.2f, %.2f, %.2f\n", get<0>(infection), symptomsString.c_str(), get<2>(infection)*timestep_in_data/(float)(day), get<3>(infection)*timestep_in_data/(float)(day), get<4>(infection)*timestep_in_data/(float)(day), get<5>(infection)*timestep_in_data/(float)(day));
+            }
+            fclose(fp);
+        }
+    }
+    static void dumpQuarantineRecords(string filename)
+    {
+        if(FILE *fp=fopen(filename.c_str() ,"w"))
+        {
+            fprintf(fp, "id, time, type\n");
+            tuple<int, int, char> quarantine_event;
+            for(int i=0; i<quarantine_records.size(); i++)
+            {
+                quarantine_event=quarantine_records[i];
+                fprintf(fp, "%d, %.2f, %c\n", get<0>(quarantine_event), get<1>(quarantine_event)*timestep_in_data/(float)(day), get<2>(quarantine_event));
             }
             fclose(fp);
         }
@@ -824,7 +853,8 @@ vector<tuple<int, int, int, bool, bool, int>> nodeClass::official_tracing_data={
 int nodeClass::testId=0;
 unordered_map<int, int> nodeClass::ongoing_tests={};
 vector<bool> nodeClass::positive_patients={};
-vector<tuple<int, char, int>> nodeClass::symptoms={};
+vector<tuple<int, char, int, int, int, int>> nodeClass::symptoms={};
+vector<tuple<int, int, char>> nodeClass::quarantine_records={};
 // void simulatePandemic(vector<nodeClass> &studentlist, vector<int> &student_id_list, vector<vector<pair<int, char>>> &eventq, vector<vector<tuple<int, int, bool>>> &contactdict, int curr_time=0, int final_time=-1, vector<tuple<int, int, int>> &transmissionChain, vector<tuple<int, int, int, int>> &totalCounts, bool allSusceptible=true)
 // {
 //     int first_time;
@@ -1005,7 +1035,7 @@ int main(int argc, char const *argv[])
     float temp=0.0;
     int hour;
 
-    vector<tuple<int, int, int, int>> totalCounts{make_tuple(N_students, 0, 0, 0)};
+    vector<tuple<int, int, int, int>> totalCounts{make_tuple(N_students - total_infected, exposed, infectious, total_infected - exposed - infectious)};
     vector<tuple<int, int, char, int, char>> transmissionChain;
     vector<tuple<int, int, char, int, char>> usefulContacts;
     bool done=false;
@@ -1136,5 +1166,6 @@ int main(int argc, char const *argv[])
     nodeClass::dumpOfficialTestsData("outputs/tests.txt");
     nodeClass::dumpOfficialTracingData("outputs/trace.txt");
     nodeClass::dumpSymptoms("outputs/infectiontypes.txt");
+    nodeClass::dumpQuarantineRecords("outputs/quarantines.txt");
     return 0;
 }

@@ -6,12 +6,12 @@ tests = tests[tests$result=="POSITIVE", ]
 
 infectionStatus = function(id, infectionTypes=infectiontypes)
 {
-    return(ifelse(length(ret <- infectiontypes[infectiontypes$id==id, "symptom"])==0, "SUSCEPTIBLE", ret))
+    return(ifelse(length(ret <- infectiontypes[infectiontypes$id==id, "symptom.type"])==0, "SUSCEPTIBLE", ret))
 }
 
 countFirstDegreeContacts = function(i, usefulContacts=usefulcontacts, infectionTypes=infectiontypes)
 {
-    infectionTypes = infectionTypes[infectionTypes$symptom != "ASYMPTOMATIC", ]
+    # infectionTypes = infectionTypes[infectionTypes$symptom != "ASYMPTOMATIC", ]
     usefulContacts = usefulContacts[usefulContacts$P1==i | usefulContacts$P2==i, ]
     usefulContacts = usefulContacts %>% mutate(id=ifelse(P1==i, P2, P1))
     usefulContacts = usefulContacts %>% inner_join(infectionTypes, by="id")
@@ -91,7 +91,7 @@ getCountsForAll = function(infectionTypes=infectiontypes, usefulContacts=usefulc
     return(cbind(infectionTypes, firstDegreeCounts, included))
 }
 
-if(TRUE)
+if(FALSE)
 {
     df = getCountsForAll()
     tab=table(df$firstDegreeCounts, df$included)
