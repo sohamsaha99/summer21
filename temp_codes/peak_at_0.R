@@ -6,7 +6,7 @@ transmissions = read.table("outputs/transmissions.csv", sep=",", header=TRUE, st
 tests = read.table("outputs/tests.txt", sep=",", header=TRUE, strip.white=TRUE)
 tests = tests[tests$result=="POSITIVE", ]
 
-setIntersectionLength = function(x1, y1, x2, y2) # Length of intersection of [x1, y1] and [x2, y2]
+setIntersectionLength = function(x1, y1, x2, y2) # Length measure of intersection of [x1, y1] and [x2, y2]
 {
     if(x1>=y1 | x2>=y2)
     {

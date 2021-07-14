@@ -3,8 +3,8 @@ import plotly.graph_objects as go
 
 def plot_trace():
     try:
-        df = pd.read_csv("trace.txt", skipinitialspace=True)
-        tf = pd.read_csv("tests.txt", skipinitialspace=True)
+        df = pd.read_csv("outputs/trace.txt", skipinitialspace=True)
+        tf = pd.read_csv("outputs/tests.txt", skipinitialspace=True)
         lf = pd.merge(df, tf, on="test.id")
         df_cross = pd.crosstab(lf['case.id'], lf['result'])
         degrees = list(df_cross["POSITIVE"])

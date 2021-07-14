@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 def plot_tests():
-    df = pd.read_csv("tests.txt", skipinitialspace=True)
+    df = pd.read_csv("outputs/tests.txt", skipinitialspace=True)
     df_cross = pd.crosstab(df.reason, df.result)
     # initiate data list for figure
     data = []

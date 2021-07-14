@@ -2,7 +2,7 @@ import json
 import plotly.graph_objects as go
 
 def plot_transmission():
-    with open("graphdata.json") as f:
+    with open("outputs/graphdata.json") as f:
         data=json.load(f)
     I = 0
     J = 0
