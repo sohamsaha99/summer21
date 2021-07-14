@@ -10,7 +10,7 @@ def plot_secondaryCounts():
     infectiontypes = infectiontypes.assign(
         secondary_count = infectiontypes['id'].apply(lambda y: (transmissions['source']==y).sum())
     ).assign(
-        included = infectiontypes['id'].apply(lambda y: y in tests['id'])
+        included = infectiontypes['id'].apply(lambda y: y in tests['id'].values)
     )
     df = pd.crosstab(infectiontypes.secondary_count, infectiontypes.included)
     df = df.assign(prop = df[True] / (df[True] + df[False])).reset_index()
