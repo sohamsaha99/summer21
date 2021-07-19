@@ -1,8 +1,10 @@
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 contacts = pd.read_csv("outputs/usefulcontacts.txt", skipinitialspace=True)
 infectiontypes = pd.read_csv("outputs/infectiontypes.txt", skipinitialspace=True)
+tests = pd.read_csv("outputs/tests.txt", skipinitialspace=True)
+tests = tests.loc[tests['result']=="POSITIVE"]
 
 def checkRecallInterval(i, t):
     infectiontypes_subset = infectiontypes.loc[infectiontypes['id'] == i]
@@ -25,6 +27,13 @@ def countFirstDegree(i):
     return len(set(list(contacts_subset['neighbour'])))
 
 def firstdegreecontacts():
-    infectiontypes_sub = infectiontypes.loc[infectiontypes['id']<100]
-    df = infectiontypes_sub.assign(first_degree = infectiontypes_sub['id'].apply(lambda x: countFirstDegree(x)))
+    df = infectiontypes.assign(
+        first_degree = infectiontypes['id'].apply(lambda x: countFirstDegree(x))
+    ).assign(
+        inclusion = infectiontypes['id'].apply(lambda y: y in tests['id'].values)
+    )
+    df_tab = pd.crosstab(df.first_degree, df.inclusion)
+    df_tab = df_tab.assign(prop = df_tab[True] / (df_tab[True] + df_tab[False])).reset_index()
+    fig = go.Figure(data=go.Scatter(x=df_tab['first_degree'], y=df_tab['prop']))
+    fig.show()
     return df

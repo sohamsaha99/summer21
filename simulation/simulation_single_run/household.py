@@ -31,7 +31,7 @@ while num < n:
                 household_edges.append([num+i, num+j])
     num += temp
 
-with open("familyedgelist.csv", "w", newline="") as f:
+with open("input_graphs/familyedgelist.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerows(household_edges)
 
@@ -43,7 +43,7 @@ outer_edges = []
 for u, v in G.edges:
     outer_edges.append([u+1, v+1])
 
-with open("outeredgelist.csv", "w", newline="") as f:
+with open("input_graphs/outeredgelist.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerows(outer_edges)
 

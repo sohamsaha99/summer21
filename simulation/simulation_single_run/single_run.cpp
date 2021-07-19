@@ -147,7 +147,7 @@ void generateContactEvents(string household_edges_file, string outer_edges_file,
 {
     if(household_edges_file_prev!=household_edges_file)
     {
-        printf("Got new file for family.\n");
+        // printf("Got new file for family.\n");
         // Read household_edges_file and insert in household_edges
         int P1, P2, k=0;
         if(FILE *fp=fopen(household_edges_file.c_str(), "r"))
@@ -167,7 +167,7 @@ void generateContactEvents(string household_edges_file, string outer_edges_file,
     }
     if(outer_edges_file_prev!=outer_edges_file)
     {
-        printf("Got new file for outer.\n");
+        // printf("Got new file for outer.\n");
         // Read outer_edges_file and insert in outer_edges
         int P1, P2, k=0;
         if(FILE *fp=fopen(outer_edges_file.c_str(), "r"))
@@ -916,7 +916,7 @@ void __attribute__((optimize("O0"))) takeInputFromFile(const char *filename)
 {
     if(FILE *fp=fopen(filename, "r"))
     {
-        cout<<"Opened File\n";
+        // cout<<"Opened File\n";
         char *nothing;
         int a,d;
         float x;
@@ -971,32 +971,35 @@ int main(int argc, char const *argv[])
         }
     }
     // PRINT PARAMETERS:
-    printf("N_students: %d\n"
-            "p_app_d: %f\n"
-            "p_tested: %f\n"
-            "p_test_high_contact: %f\n"
-            "p_test_low_contact: %f\n"
-            "p_traced: %f\n"
-            "p_mask: %f\n"
-            "test_delay_d: %f\n"
-            "trace_delay_manual_d: %f\n"
-            "trace_delay_app_d: %f\n"
-            "manual_tracing_threshold: %d\n"
-            "app_tracing_threshold: %d\n"
-            "mask_reduction_out_d: %f\n"
-            "mask_reduction_in_d: %f\n"
-            "tracelength_d: %d\n"
-            "quarantine_length: %d\n"
-            "incubation_period: %f\n"
-            "prodromal_period: %f\n"
-            "p_asymptomatic: %f\n"
-            "p_paucisymptomatic: %f\n"
-            "p_mildsymptomatic: %f\n"
-            "p_severesymptomatic: %f\n"
-            "infectious_period: %f\n"
-            "p_transmission: %f\n"
-            "low_risk_adjustment: %f\n",
-            N_students, p_app_d, p_tested, p_test_high_contact, p_test_low_contact, p_traced, p_mask, test_delay_d, trace_delay_manual_d, trace_delay_app_d, manual_tracing_threshold, app_tracing_threshold, mask_reduction_out_d, mask_reduction_in_d, tracelength_d, quarantine_length, incubation_period, prodromal_period, p_asymptomatic, p_paucisymptomatic, p_mildsymptomatic, p_severesymptomatic, infectious_period, p_transmission, low_risk_adjustment);
+    if(false)
+    {
+        printf("N_students: %d\n"
+                "p_app_d: %f\n"
+                "p_tested: %f\n"
+                "p_test_high_contact: %f\n"
+                "p_test_low_contact: %f\n"
+                "p_traced: %f\n"
+                "p_mask: %f\n"
+                "test_delay_d: %f\n"
+                "trace_delay_manual_d: %f\n"
+                "trace_delay_app_d: %f\n"
+                "manual_tracing_threshold: %d\n"
+                "app_tracing_threshold: %d\n"
+                "mask_reduction_out_d: %f\n"
+                "mask_reduction_in_d: %f\n"
+                "tracelength_d: %d\n"
+                "quarantine_length: %d\n"
+                "incubation_period: %f\n"
+                "prodromal_period: %f\n"
+                "p_asymptomatic: %f\n"
+                "p_paucisymptomatic: %f\n"
+                "p_mildsymptomatic: %f\n"
+                "p_severesymptomatic: %f\n"
+                "infectious_period: %f\n"
+                "p_transmission: %f\n"
+                "low_risk_adjustment: %f\n",
+                N_students, p_app_d, p_tested, p_test_high_contact, p_test_low_contact, p_traced, p_mask, test_delay_d, trace_delay_manual_d, trace_delay_app_d, manual_tracing_threshold, app_tracing_threshold, mask_reduction_out_d, mask_reduction_in_d, tracelength_d, quarantine_length, incubation_period, prodromal_period, p_asymptomatic, p_paucisymptomatic, p_mildsymptomatic, p_severesymptomatic, infectious_period, p_transmission, low_risk_adjustment);
+    }
     srand(time(0));
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     bool printTimeline=false;
@@ -1096,11 +1099,11 @@ int main(int argc, char const *argv[])
             int date = curr_time*timestep_in_data/day;
             if(date<=10)
             {
-                generateContactEvents("familyedgelist.csv", "outeredgelist.csv", contactdict, household_edges, outer_edges, household_edges_file_prev, outer_edges_file_prev);
+                generateContactEvents("input_graphs/familyedgelist.csv", "input_graphs/outeredgelist.csv", contactdict, household_edges, outer_edges, household_edges_file_prev, outer_edges_file_prev);
             }
             else
             {
-                generateContactEvents("familyedgelist.csv", "outeredgelist.csv", contactdict, household_edges, outer_edges, household_edges_file_prev, outer_edges_file_prev);
+                generateContactEvents("input_graphs/familyedgelist.csv", "input_graphs/outeredgelist.csv", contactdict, household_edges, outer_edges, household_edges_file_prev, outer_edges_file_prev);
             }
         }
         if(!contactdict[hour].empty())

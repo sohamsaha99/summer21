@@ -1,10 +1,7 @@
 import csv
 import numpy as np
 from networkx import expected_degree_graph, selfloop_edges, write_edgelist
-
-n = int(input()) # Number of nodes. Node id: 1, ..., n
-shape = float(input())
-scale = float(input())
+n = 5000 # Number of nodes. Node id: 1, ..., 500
 
 # h1 = 269898 # 1 person
 # h2 = 209573 # 2 person
@@ -35,7 +32,7 @@ with open("familyedgelist.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerows(household_edges)
 
-outer_degrees = np.random.gamma(shape=shape ,scale=scale, size=n) # shape=1.65, scale=0.61
+outer_degrees = np.random.gamma(shape=1.65 ,scale=3, size=n) # shape=1.65, scale=0.61
 G = expected_degree_graph(outer_degrees)
 G.remove_edges_from(selfloop_edges(G))
 

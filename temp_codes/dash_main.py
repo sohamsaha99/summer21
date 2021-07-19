@@ -9,6 +9,8 @@ from plot_dailydata import plot_dailydata
 from plot_tests import plot_tests
 from plot_transmission import plot_transmission
 from plot_trace import plot_trace
+from plot_effectiveinfectious import plot_effectiveinfectious
+from plot_secondaryCounts import plot_secondaryCounts
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
