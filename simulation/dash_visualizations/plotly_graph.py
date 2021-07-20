@@ -1,0 +1,68 @@
+def plot_network(G):
+    fff
+
+pos = nx.fruchterman_reingold_layout(G)
+nx.set_node_attributes(G, pos, "pos")
+edge_x = []
+edge_y = []
+for edge in G.edges():
+    x0, y0 = G.nodes[edge[0]]['pos']
+    x1, y1 = G.nodes[edge[1]]['pos']
+    edge_x.append(x0)
+    edge_x.append(x1)
+    edge_x.append(None)
+    edge_y.append(y0)
+    edge_y.append(y1)
+    edge_y.append(None)
+
+edge_trace = go.Scatter(
+    x=edge_x, y=edge_y,
+    line=dict(width=0.5, color='#888'),
+    hoverinfo='none',
+    mode='lines')
+
+node_x = []
+node_y = []
+for node in G.nodes():
+    x, y = G.nodes[node]['pos']
+    node_x.append(x)
+    node_y.append(y)
+
+node_trace = go.Scatter(
+    x=node_x, y=node_y,
+    mode='markers',
+    hoverinfo='text',
+    marker=dict(
+        showscale=True,
+        # colorscale options
+        #'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
+        #'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
+        #'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
+        colorscale='YlGnBu',
+        reversescale=True,
+        color=[],
+        size=10,
+        colorbar=dict(
+            thickness=15,
+            title='Node Connections',
+            xanchor='left',
+            titleside='right'
+        ),
+        line_width=2))
+
+
+nodes_list = []
+for node in G.nodes():
+    nodes_list.append({"name": str(node), "id": node, "group": G.nodes[node]["group"]})
+
+
+edges_list = []
+for source, target, time in G.edges(data=True):
+    edges_list.append({"source": source, "target": target, "type": time['type']})
+
+graph_dict = {"nodes": nodes_list, "links": edges_list}
+
+import json
+with open('graph_data.json', 'w', encoding='utf-8') as f:
+    json.dump(graph_dict, f, ensure_ascii=False, indent=4)
+

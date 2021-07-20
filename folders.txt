@@ -1,0 +1,26 @@
+Folders:
+
+-simulation_single_run
+    |-household.py
+    |-single_run.cpp
+    |-single_run.out (./compile.sh)
+    |-jsonUtils.py
+    |-params
+        |-graph_params.txt
+        |-simulation_params.txt
+    |-input_graphs
+        |-familyedgelist.csv
+        |-outeredgelist.csv
+    |-outputs
+        |-dailydata.txt
+        |-graphdata.json
+        |-infectiontypes.txt
+        |-quarantines.txt
+        |-tests.txt
+        |-trace.txt
+        |-transmissions.csv
+        |-usefulcontacts.txt
+    |-compile.sh
+    |-run.sh
+-simuation_multi_run
+    |-

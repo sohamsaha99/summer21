@@ -114,8 +114,8 @@ def run_multiple_simulation():
                                 final_dir_name = os.path.join(parent_dir, "simulation_" + str(sim))
                                 shutil.copytree(source_dir, final_dir_name)
                                 # os.rename(os.path.join(parent_dir, "outputs"), final_dir_name)
-                            shutil.move("simulation_single_run/params/simulation_params.txt", parent_dir)
-                            shutil.move("simulation_single_run/params/graph_params.txt", parent_dir)
+                            shutil.copy2("simulation_single_run/params/simulation_params.txt", parent_dir)
+                            shutil.copy2("simulation_single_run/params/graph_params.txt", parent_dir)
 
 
 if __name__=='__main__':
