@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////
-//////          DONT MODIFY N_students inside mai   /////////////////
-//////          NOW AVAIL;ABLE IN GLOBAL            /////////////////
+//////          DONT MODIFY N_students inside main  /////////////////
+//////          NOW AVAILABLE IN GLOBAL            //////////////////
 /////////////////////////////////////////////////////////////////////
 #define ROUND_2_INT(f) ((int)((f) >= 0.0 ? ((f) + 0.5) : ((f) - 0.5)))
 #define LOG_NORMAL_FIND_UNDERLYING_MEAN(mu, sgm) (log((mu) /sqrt(1 + ((sgm) * (sgm) / ((mu) * (mu))))))
