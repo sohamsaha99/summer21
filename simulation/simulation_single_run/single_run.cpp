@@ -193,8 +193,12 @@ void generateContactEvents(string household_edges_file, string outer_edges_file,
     }
     for(int i=0; i<outer_edges.size(); i++)
     {
+        if(static_cast<float>(rand())/static_cast<float>(RAND_MAX) > 0.75)
+        {
+            continue;
+        }
         int t=rand()%(day/timestep_in_data)+1;
-        if(static_cast<float>(rand())/static_cast<float>(RAND_MAX) < 0.9)
+        if(static_cast<float>(rand())/static_cast<float>(RAND_MAX) < 0.95)
         {
             insertContactEvent(contactdict, t, {get<0>(outer_edges[i]), get<1>(outer_edges[i]), false});
         }
@@ -412,7 +416,7 @@ public:
     {
         if(newstate=='F')// END OF QUARANTINE
         {
-            if(in_quarantine & quarantine_release_time==currtime)
+            if(in_quarantine && quarantine_release_time==currtime)
             {
                 quarantine_records.push_back({id, currtime, 'E'}); // E: End of quarantine
                 in_quarantine=false;
@@ -586,13 +590,17 @@ public:
         positive_patients[id]=true;
         float temp=0.0;
         flush_contacts(currtime, param_tracelength);
+        if(state == 'E' || state == 'I')
+        {
+            return;
+        }
         for(auto& kv:count_of_contacts)
         {
             bool put_in_quarantine=false;
             int quarantine_time;
             if(kv.second > param_manual_tracing_threshold)
             {
-                if(static_cast <float>(rand())/static_cast <float>(RAND_MAX) < param_p_traced)// ((float)(kv.second))/(kv.second + 12.0)) // NOT USING param_p_traced
+                if(static_cast <float>(rand())/static_cast <float>(RAND_MAX) < param_p_traced || count_of_high_risk_contacts.count(kv.first) > 0)// ((float)(kv.second))/(kv.second + 12.0)) // NOT USING param_p_traced
                 {
                     put_in_quarantine=true;
                     temp=((currtime*timestep_in_data)+rnorm_trace_delay_manual(gen))/timestep_in_data;
