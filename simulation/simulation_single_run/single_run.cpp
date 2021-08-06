@@ -590,7 +590,7 @@ public:
         positive_patients[id]=true;
         float temp=0.0;
         flush_contacts(currtime, param_tracelength);
-        if(state == 'E' || state == 'I')
+        if(state == 'E')
         {
             return;
         }

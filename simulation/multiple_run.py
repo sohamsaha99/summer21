@@ -25,9 +25,9 @@ prodromal_period = 1.5
 p_paucisymptomatic = 0.0
 # p_mildsymptomatic
 # p_severesymptomatic
-infectious_period = 4.3
+infectious_period = 7.0
 # p_transmission
-low_risk_adjustment = 1.0
+low_risk_adjustment = 0.85
 
 graph_gamma_shape = 1.65
 
