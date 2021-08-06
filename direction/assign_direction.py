@@ -55,7 +55,19 @@ def criteria_function_1(x: List[float], y: List[float]):
     if len(x) == 0 or len(y) == 0:
         return -1
     s = np.sum(x)
+    if s == 0:
+        return np.random.choice(len(x))
     return np.random.choice(len(x), p = [(i/s) for i in x])
+
+def criteria_function_2(x: List[float], y: List[float]):
+    """
+    ADD DOCSTRING
+    """
+    if len(x) == 0 or len(y) == 0:
+        return -1
+    z = x + np.exp(y) / (1 + np.exp(y))
+    z /= z.sum()
+    return np.random.choice(len(x), p = z)
 
 def find_source_of_node(index: int, vector_of_nodes: List[Node], criteria_function):
     """
@@ -66,6 +78,7 @@ def find_source_of_node(index: int, vector_of_nodes: List[Node], criteria_functi
     contacts_of_case = vector_of_nodes[index].contacts
     descendants_of_case = vector_of_nodes[index].descendants
     candidates_for_source = list(contacts_of_case.difference(descendants_of_case))
+    # print(candidates_for_source)
     SAR_values = [vector_of_nodes[i].secondary_attack_rate for i in candidates_for_source]
     time_differences = [(vector_of_nodes[i].sample_collection_time - case_sample_collection_time) for i in candidates_for_source]
     source_index = criteria_function(SAR_values, time_differences)

@@ -1,4 +1,9 @@
 {
     "python.pythonPath": "bin/python",
-    "editor.wordWrap": "bounded"
+    "editor.wordWrap": "bounded",
+    "files.watcherExclude": {
+        "/root/projects/summer21/bin/**": true,
+        "/root/projects/summer21/etc/**": true,
+        "/root/projects/summer21/lib/**": true
+    }
 }
