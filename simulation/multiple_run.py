@@ -17,7 +17,7 @@ manual_tracing_threshld = 0
 app_tracing_threshold = 0
 mask_reduction_out_d = 0.6
 mask_reduction_in_d = 0.9
-tracelength_d = 6
+tracelength_d = 12
 quarantine_length = 14
 incubation_period = 5.2
 prodromal_period = 1.5
@@ -57,12 +57,12 @@ def run_multiple_simulation():
     p_transmission_list = [0.05, 0.10, 0.15]
     n_sim = 20
 
-    N_students_list = [500, 1000]
-    graph_gamma_scale_list = [0.3]
-    p_tested_list = [0.10, 0.25]
-    p_traced_list = [0.10]
-    p_symptom_list = [(0.9, 0.1, 0.0), (0.9, 0.07, 0.03)]
-    p_transmission_list = [0.05, 0.10, 0.15]
+    N_students_list = [500]
+    graph_gamma_scale_list = [0.61]
+    p_tested_list = [0.40]
+    p_traced_list = [0.60]
+    p_symptom_list = [(0.85, 0.12, 0.03)]
+    p_transmission_list = [0.10]
     n_sim = 2
 
     count = 0

@@ -5,5 +5,8 @@
         "/root/projects/summer21/bin/**": true,
         "/root/projects/summer21/etc/**": true,
         "/root/projects/summer21/lib/**": true
+    },
+    "files.associations": {
+        "chrono": "cpp"
     }
 }

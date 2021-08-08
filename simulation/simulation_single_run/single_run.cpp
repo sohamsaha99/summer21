@@ -44,6 +44,8 @@ float low_risk_adjustment=1.0;//////////////////////////////////////////////////
 
 random_device rd;
 mt19937 gen(rd());
+// mt19937 gen(2001); 
+// FIX SEED TO REPRODUCE ERRORS, IF ANY
 // default_random_engine gen;
 lognormal_distribution<float> rnorm_latency_period(LOG_NORMAL_FIND_UNDERLYING_MEAN(latency_period, (latency_period/10.0)), LOG_NORMAL_FIND_UNDERLYING_SIGMA(latency_period, (latency_period/10.0)));
 lognormal_distribution<float> rnorm_prodromal_period(LOG_NORMAL_FIND_UNDERLYING_MEAN(prodromal_period, (prodromal_period/10.0)), LOG_NORMAL_FIND_UNDERLYING_SIGMA(prodromal_period, (prodromal_period/10.0)));
@@ -184,6 +186,10 @@ void generateContactEvents(string household_edges_file, string outer_edges_file,
             fclose(fp);
             outer_edges_file_prev=outer_edges_file;
         }
+    }
+    for(auto& contact_event : contactdict)
+    {
+        contact_event.clear();
     }
     contactdict.clear();
     for(int i=0; i<household_edges.size(); i++)
@@ -978,6 +984,7 @@ int main(int argc, char const *argv[])
             takeInputFromFile(argv[1]);
         }
     }
+    // takeInputFromFile("simulation_params.txt"); // TO REPRODUCE ERRORS, SUPPLY PARAMETERS FILE
     // PRINT PARAMETERS:
     if(false)
     {
@@ -1009,6 +1016,7 @@ int main(int argc, char const *argv[])
                 N_students, p_app_d, p_tested, p_test_high_contact, p_test_low_contact, p_traced, p_mask, test_delay_d, trace_delay_manual_d, trace_delay_app_d, manual_tracing_threshold, app_tracing_threshold, mask_reduction_out_d, mask_reduction_in_d, tracelength_d, quarantine_length, incubation_period, prodromal_period, p_asymptomatic, p_paucisymptomatic, p_mildsymptomatic, p_severesymptomatic, infectious_period, p_transmission, low_risk_adjustment);
     }
     srand(time(0));
+    // srand(2020); // TO REPRODUCE ERRORS, IF ANY
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     bool printTimeline=false;
     // float p_mask=0.0, p_app=0.0;
@@ -1018,9 +1026,9 @@ int main(int argc, char const *argv[])
     vector<vector<tuple<int, int, bool>>> contactdict;
     contactdict.reserve(9000);
     unordered_set<int> student_ids;
-    eventq.clear();
+    eventq.clear(); // DOES NOT WORK. DO ITERATION
     student_ids.clear();
-    contactdict.clear();
+    contactdict.clear(); // DOES NOT WORK. DO ITERATION
     string household_edges_file_prev="", outer_edges_file_prev="";
     vector<pair<int, int>> household_edges={}, outer_edges={};
 
