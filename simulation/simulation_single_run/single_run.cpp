@@ -1067,7 +1067,7 @@ int main(int argc, char const *argv[])
     pair<int, char> event;
     while(!done)
     {
-        if(!eventq[curr_time].empty())
+        if(eventq.size() >= curr_time && !eventq[curr_time].empty())
         {
             int l=eventq[curr_time].size();
             for(int i=0; i<l; i++)
@@ -1122,7 +1122,7 @@ int main(int argc, char const *argv[])
                 generateContactEvents("input_graphs/familyedgelist.csv", "input_graphs/outeredgelist.csv", contactdict, household_edges, outer_edges, household_edges_file_prev, outer_edges_file_prev);
             }
         }
-        if(!contactdict[hour].empty())
+        if(contactdict.size() >= hour+1 && !contactdict[hour].empty())
         {
             int l=contactdict[hour].size();
             for(int i=0; i<l; i++)
