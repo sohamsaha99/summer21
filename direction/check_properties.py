@@ -1,4 +1,5 @@
 # %%
+from typing import Dict
 from assign_direction import *
 from process_data import *
 
@@ -39,11 +40,30 @@ pd.crosstab(df["check_result"], df["symptom.type"])
 pd.crosstab(df["check_result"], df["source_included"])
 
 # %%
-def find_set_of_SAR(set_of_positive: Set, cases: pd.DataFrame):
+# Creates a dictionary with key: id, value: SAR
+dictionary_of_SAR = df.set_index("id", drop=True).apply(lambda x: x["secondary_attack_rate"], axis=1).to_dict()
+
+# %%
+def find_array_of_SAR(set_of_positive: Set, source: int, dictionary_of_SAR: Dict):
     """
     ADD DOCSTRING
     """
+    array_of_SAR = []
     for idx in set_of_positive:
-        cases[cases["id"] == idx]["secondary_attack_rate"]
+        if idx != source:
+            array_of_SAR.append(dictionary_of_SAR[idx])
+    return array_of_SAR
 
-df["set_of_SAR"] = df["set_of_positive"].apply(lambda x: find_set_of_SAR(x, df))
+df["array_of_SAR"] = df.apply(lambda x: find_array_of_SAR(x["set_of_positive"], x["source"], dictionary_of_SAR), axis=1)
+df["source_SAR"] = df["source"].apply(lambda x: dictionary_of_SAR.get(x))
+df["SAR_difference"] = df.apply(lambda x: [i - x["source_SAR"] for i in x["array_of_SAR"]], axis=1)
+# %%
+array_of_SAR_differences = []
+for _, row in df[df["source_included"]].iterrows():
+    array_of_SAR_differences += row["SAR_difference"]
+
+# %%
+plt.hist(array_of_SAR_differences)
+pd.Series(array_of_SAR_differences).describe()
+
+# %%
