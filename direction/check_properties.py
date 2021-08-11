@@ -1,7 +1,10 @@
 # %%
 from typing import Dict
+
+from plotnine.mapping.evaluation import after_stat
 from assign_direction import *
 from process_data import *
+from plotnine import ggplot, geom_point, aes, stat_smooth, facet_wrap, geom_histogram
 
 # %%
 cases, contacts = process_case_data("datasets/tests.txt", "datasets/trace.txt", "datasets/transmissions.csv")
@@ -33,37 +36,45 @@ print(cases.apply(lambda x: check_estimated_source(x), axis=1).sum())
 # %%
 df = cases.assign(check_result = cases.apply(lambda x: check_estimated_source(x, 3), axis=1))
 infectiontypes = pd.read_csv("datasets/infectiontypes.txt", skipinitialspace=True, sep=",")
-df = df.merge(infectiontypes[["id", "symptom.type"]], how="left", on="id")
+df = df.merge(infectiontypes[["id", "symptom.type", "sympt.time"]], how="left", on="id")
 # %%
 pd.crosstab(df["check_result"], df["symptom.type"])
 # %%
 pd.crosstab(df["check_result"], df["source_included"])
 
 # %%
-# Creates a dictionary with key: id, value: SAR
-dictionary_of_SAR = df.set_index("id", drop=True).apply(lambda x: x["secondary_attack_rate"], axis=1).to_dict()
-
-# %%
-def find_array_of_SAR(set_of_positive: Set, source: int, dictionary_of_SAR: Dict):
+def find_array_of_attribute(set_of_positive: Set, source: int, dictionary_of_attribute: Dict):
     """
     ADD DOCSTRING
     """
-    array_of_SAR = []
+    array_of_attribute = []
     for idx in set_of_positive:
         if idx != source:
-            array_of_SAR.append(dictionary_of_SAR[idx])
-    return array_of_SAR
+            array_of_attribute.append(dictionary_of_attribute[idx])
+    return array_of_attribute
 
-df["array_of_SAR"] = df.apply(lambda x: find_array_of_SAR(x["set_of_positive"], x["source"], dictionary_of_SAR), axis=1)
-df["source_SAR"] = df["source"].apply(lambda x: dictionary_of_SAR.get(x))
-df["SAR_difference"] = df.apply(lambda x: [i - x["source_SAR"] for i in x["array_of_SAR"]], axis=1)
+def get_difference_of_attribute(df: pd.DataFrame, attribute: str, binwidth=None):
+    """
+    ADD DOCSTRING
+    """
+    dictionary_of_attribute = df.set_index("id", drop=True).apply(lambda x: x[attribute], axis=1).to_dict()
+    df["array_of_"+attribute] = df.apply(lambda x: find_array_of_attribute(x["set_of_positive"], x["source"], dictionary_of_attribute), axis=1)
+    df["source_"+attribute] = df["source"].apply(lambda x: dictionary_of_attribute.get(x))
+    df[attribute+"_difference"] = df.apply(lambda x: [i - x["source_"+attribute] for i in x["array_of_"+attribute]], axis=1)
+    array_of_attribute_differences = []
+    for _, row in df[df["source_included"]].iterrows():
+        array_of_attribute_differences += row[attribute+"_difference"]
+    # plt.hist(array_of_attribute_differences)
+    dat = pd.DataFrame({'Difference of '+attribute: array_of_attribute_differences})
+    (ggplot(dat, aes(x='Difference of '+attribute, y=after_stat("density")))
+    + geom_histogram(binwidth=binwidth)
+    ).draw()
+    print(pd.Series(array_of_attribute_differences).describe())
+
 # %%
-array_of_SAR_differences = []
-for _, row in df[df["source_included"]].iterrows():
-    array_of_SAR_differences += row["SAR_difference"]
-
+get_difference_of_attribute(df, "sympt.time")
 # %%
-plt.hist(array_of_SAR_differences)
-pd.Series(array_of_SAR_differences).describe()
-
+get_difference_of_attribute(df, "secondary_attack_rate", 0.2)
+# %%
+get_difference_of_attribute(df, "collection.time", 2.0)
 # %%

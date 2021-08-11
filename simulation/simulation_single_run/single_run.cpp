@@ -77,7 +77,7 @@ inline void insertEvent(vector<vector<pair<int, char>>> &eventq, int currtime, p
 {
     while(eventq.size() <= currtime)
     {
-        eventq.push_back(BLANKEVENT);
+        eventq.push_back({});
     }
     eventq[currtime].push_back(event);
 }
